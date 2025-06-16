@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Highlight connected cells in a grid</title>
+
+  <style>
+    #container {
+  width: 300px;
+  height: 250px;
+  border: black solid 3px;
+  display: grid;
+  grid-template-columns: repeat(6, 50px);
+  grid-template-rows: repeat(5, 50px);
+}
+.cell {
+  width: 50px;
+  height: 50px;
+  border: black 3px solid;
+  box-sizing: border-box;
+}
+.cell:hover {
+    background-color: pink;
+}
+/* #cellN4 {
+  border-bottom: none;
+}
+#cellN10 {
+  border-top: none;
+  border-left: none;
+}
+#cellN9 {
+  border-right: none;
+} */
+
+  </style>
+
+  
+</head>
+<body>
+  <div id="container">
+</div>
+
+  <script>
+    for (let i = 0; i < 6 * 5; i++) {
+  const cell = document.createElement("div")
+  cell.id = "cellN" + i
+  cell.className = "cell"
+  cell.number = i
+  container.appendChild(cell)
+
+  cell.addEventListener("click", (e) => handleClick(e))
+}
+
+const passages = [] // index of an array is a cell number
+for (let i = 0; i < 5 * 6; i++) {
+  passages.push(new Set())
+}
+
+let lastClicked = undefined 
+
+function handleClick(e) {
+  e.preventDefault()
+  const num = e.target.number
+  const id = e.target.id
+  console.log(num)
+
+  let isVertical = false
+  let isHorizontal = false
+  if (lastClicked !== undefined) {
+    const tarNum = e.target.number
+    const clickNum = lastClicked.number
+    isVertical = Math.abs(tarNum - clickNum) == 1 && Math.floor(tarNum/6) == Math.floor(clickNum/6)
+    isHorizontal = Math.abs(tarNum - clickNum) == 6
+  }
+
+  if (lastClicked === undefined) {
+    lastClicked = e.target
+    e.target.style.backgroundColor = "red"
+  } else if (lastClicked !== e.target && (isVertical || isHorizontal)) {
+    passages[e.target.number].add(lastClicked.number)
+    passages[lastClicked.number].add(e.target.number)
+    lastClicked.style.backgroundColor = "white"
+    e.target.style.backgroundColor = "red"
+    lastClicked = e.target
+    updateStyles()
+  } else if (lastClicked == e.target) {
+    lastClicked.style.background = "white"
+    lastClicked = undefined
+  }
+}
+
+function updateStyles() {
+  const cells = document.querySelectorAll(".cell")
+  cells.forEach(cell => {
+    const idx = cell.number
+    const curPasArr = Array.from(passages[idx])
+
+    const isUp = curPasArr.indexOf(idx - 6) !== -1
+    const isRight = curPasArr.indexOf(idx + 1) !== -1
+    const isDown = curPasArr.indexOf(idx + 6) !== -1
+    const isLeft = curPasArr.indexOf(idx - 1) !== -1
+
+    if (isUp) { cell.style.borderTop = "none" }
+    if (isRight) { cell.style.borderRight = "none" }
+    if (isDown) { cell.style.borderBottom = "none" }
+    if (isLeft) { cell.style.borderLeft = "none" }
+  })
+}
+
+function stringifyPassages() {
+  const arr = []
+  for (let i = 0; i < passages.length; i++) {
+    arr.push(Array.from(passages[i]))
+  }
+  alert(JSON.stringify(arr))
+  return JSON.stringify(arr)
+}
+
+function printPassages() {
+  for (let i = 0; i < passages.length; i++) {
+    let printing = ""
+    passages[i].forEach(p => printing += p += ", ")
+    printing = printing.slice(0, -2)
+    console.log(i, printing)
+  }
+}
+  </script>
+</body>
+</html>
