@@ -22,9 +22,6 @@
   border: black 3px solid;
   box-sizing: border-box;
 }
-.cell:hover {
-    background-color: pink;
-}
 /* #cellN4 {
   border-bottom: none;
 }
@@ -53,61 +50,109 @@
   container.appendChild(cell)
 
   cell.addEventListener("click", (e) => handleClick(e))
+  cell.addEventListener("mousemove", (e) => handleHover(e))
 }
 
 const passages = [] // index of an array is a cell number
 for (let i = 0; i < 5 * 6; i++) {
   passages.push(new Set())
 }
-
-let lastClicked = undefined 
-
-function handleClick(e) {
-  e.preventDefault()
-  const num = e.target.number
-  const id = e.target.id
-  console.log(num)
-
-  let isVertical = false
-  let isHorizontal = false
-  if (lastClicked !== undefined) {
-    const tarNum = e.target.number
-    const clickNum = lastClicked.number
-    isVertical = Math.abs(tarNum - clickNum) == 1 && Math.floor(tarNum/6) == Math.floor(clickNum/6)
-    isHorizontal = Math.abs(tarNum - clickNum) == 6
-  }
-
-  if (lastClicked === undefined) {
-    lastClicked = e.target
-    e.target.style.backgroundColor = "red"
-  } else if (lastClicked !== e.target && (isVertical || isHorizontal)) {
-    passages[e.target.number].add(lastClicked.number)
-    passages[lastClicked.number].add(e.target.number)
-    lastClicked.style.backgroundColor = "white"
-    e.target.style.backgroundColor = "red"
-    lastClicked = e.target
-    updateStyles()
-  } else if (lastClicked == e.target) {
-    lastClicked.style.background = "white"
-    lastClicked = undefined
-  }
+const reverseSide = {
+    Top: "Bottom",
+    Bottom: "Top",
+    Right: "Left",
+    Left: "Right",
 }
 
-function updateStyles() {
+let lastHoveredCell = undefined
+let lastHoveredQuarter = ""
+
+function handleHover(e) {
+    const XNorm = e.offsetX / e.target.offsetWidth
+    const YNorm = e.offsetY / e.target.offsetHeight
+    if (XNorm < YNorm && XNorm + YNorm < 1) { handleHightlight("Left", e.target); lastHoveredQuarter = "Left"}
+    else if (XNorm > YNorm && XNorm + YNorm < 1) { handleHightlight("Top", e.target); lastHoveredQuarter = "Top"}
+    else if (XNorm > YNorm && XNorm + YNorm > 1) { handleHightlight("Right", e.target); lastHoveredQuarter = "Right"}
+    else if (XNorm < YNorm && XNorm + YNorm > 1) { handleHightlight("Bottom", e.target); lastHoveredQuarter = "Bottom"}
+    
+    function handleHightlight(side, _node) {
+        console.log(reverseSide[`${side}`])
+        const node = _node
+        const adjacent = (function() {
+            let idx = node.number
+            if (side == "Top") {idx -= 6}
+            else if (side == "Bottom") idx += 6
+            else if (side == "Right") idx += 1
+            else if (side == "Left") idx -= 1
+            return document.querySelector(`#cellN${idx}`)
+        })()
+
+        if (adjacent) {
+            adjacent.style.backgroundColor = "lightGray"
+            adjacent.style[`border${reverseSide[`${side}`]}`] = "none"
+        } 
+        node.style.backgroundColor = "lightGray"
+        node.style[`border`] = "black 3px solid"
+        node.style[`border${side}`] = "none"
+
+
+        //updatePassages(node, adjacent)
+        updateStyles(node, adjacent) // arguments tell which nodes should NOT be updated
+    }
+}
+
+//let lastClicked = undefined 
+
+function handleClick(e) {
+//   e.preventDefault()
+//   const num = e.target.number
+//   const id = e.target.id
+//   console.log(num)
+
+//   let isVertical = false
+//   let isHorizontal = false
+//   if (lastClicked !== undefined) {
+//     const tarNum = e.target.number
+//     const clickNum = lastClicked.number
+//     isVertical = Math.abs(tarNum - clickNum) == 1 && Math.floor(tarNum/6) == Math.floor(clickNum/6)
+//     isHorizontal = Math.abs(tarNum - clickNum) == 6
+//   }
+
+//   if (lastClicked === undefined) {
+//     lastClicked = e.target
+//     e.target.style.backgroundColor = "red"
+//   } else if (lastClicked !== e.target && (isVertical || isHorizontal)) {
+//     passages[e.target.number].add(lastClicked.number)
+//     passages[lastClicked.number].add(e.target.number)
+//     lastClicked.style.backgroundColor = "white"
+//     e.target.style.backgroundColor = "red"
+//     lastClicked = e.target
+//     updateStyles()
+//   } else if (lastClicked == e.target) {
+//     lastClicked.style.background = "white"
+//     lastClicked = undefined
+//   }
+}
+
+function updateStyles(node1, node2) {
   const cells = document.querySelectorAll(".cell")
   cells.forEach(cell => {
     const idx = cell.number
     const curPasArr = Array.from(passages[idx])
 
-    const isUp = curPasArr.indexOf(idx - 6) !== -1
-    const isRight = curPasArr.indexOf(idx + 1) !== -1
-    const isDown = curPasArr.indexOf(idx + 6) !== -1
-    const isLeft = curPasArr.indexOf(idx - 1) !== -1
+    const passUp = curPasArr.indexOf(idx - 6) !== -1
+    const passRight = curPasArr.indexOf(idx + 1) !== -1
+    const passDown = curPasArr.indexOf(idx + 6) !== -1
+    const passLeft = curPasArr.indexOf(idx - 1) !== -1
 
-    if (isUp) { cell.style.borderTop = "none" }
-    if (isRight) { cell.style.borderRight = "none" }
-    if (isDown) { cell.style.borderBottom = "none" }
-    if (isLeft) { cell.style.borderLeft = "none" }
+    if (passUp) { cell.style.borderTop = "none" }
+    else if (passRight) { cell.style.borderRight = "none" }
+    else if (passDown) { cell.style.borderBottom = "none" }
+    else if (passLeft) { cell.style.borderLeft = "none" }
+
+    if (cell == node1 || cell == node2) return
+    cell.style.border = "3px solid black"
+    cell.style.backgroundColor = "white"
   })
 }
 
