@@ -25,19 +25,19 @@ canvas {
         </canvas>
 
   <script>
-    const my_canvas = document.getElementById('canvas'),
+const my_canvas = document.getElementById('canvas'),
 ctx = my_canvas.getContext("2d");
 ctx.fillStyle = "blue"
 
 const columnsNum = 6
 const rowsNum = 5
 
-//const passages = [[6,1],[0,7,2],[1,3],[2,9],[10,5],[4],[0,12],[1,8,13],[9,7],[3,8,10],[11,9,4],[17,10],[18,6],[7,14],[13,20,15],[21,14],[17,22],[16,11,23],[19,12,24],[20,18],[14,19],[27,15,22],[21,16],[17,29],[18,25],[24,26],[25,27],[26,21,28],[27],[23]] // index of an array is a cell number
-//const passages = [[1,6],[2,0],[8,3,1],[2,4],[3,10,5],[4],[0,12],[],[14,2],[],[16,4],[17],[6,13,18],[14,12,19],[15,8,13],[16,14,21],[15,10,17],[16,11,23],[12,24],[13,25],[],[27,15],[],[17,29],[18],[19,26],[25,27],[28,21,26],[29,27],[23,28]]
-//const passages = [[6],[2,7],[3,1],[2,4],[5,3],[11,4],[0,12],[1,13],[9,14],[10,8],[16,9],[17,5],[6,18],[7,19],[8,15],[14,16],[22,10,15],[23,11],[12,24],[13,20],[19,21],[20,22],[21,16],[29,17],[18,25],[24,26],[25,27],[28,26],[27,29],[28,23]]
-//const passages = [[1,6],[0,2,7],[8,1],[9,4],[5,3],[4,11],[0],[13,1],[2,9],[8,3],[16],[5,17],[13,18],[14,7,19,12],[13,20],[16],[15,10,22,17],[11,16],[24,12],[13],[21,26,14],[27,20],[16],[29],[18,25],[24,26],[20,25],[21,28],[29,27],[23,28]]
+// const passages = [[6,1],[0,7,2],[1,3],[2,9],[10,5],[4],[0,12],[1,8,13],[9,7],[3,8,10],[11,9,4],[17,10],[18,6],[7,14],[13,20,15],[21,14],[17,22],[16,11,23],[19,12,24],[20,18],[14,19],[27,15,22],[21,16],[17,29],[18,25],[24,26],[25,27],[26,21,28],[27],[23]] // index of an array is a cell number
+// const passages = [[1,6],[2,0],[8,3,1],[2,4],[3,10,5],[4],[0,12],[],[14,2],[],[16,4],[17],[6,13,18],[14,12,19],[15,8,13],[16,14,21],[15,10,17],[16,11,23],[12,24],[13,25],[],[27,15],[],[17,29],[18],[19,26],[25,27],[28,21,26],[29,27],[23,28]]
+// const passages = [[6],[2,7],[3,1],[2,4],[5,3],[11,4],[0,12],[1,13],[9,14],[10,8],[16,9],[17,5],[6,18],[7,19],[8,15],[14,16],[22,10,15],[23,11],[12,24],[13,20],[19,21],[20,22],[21,16],[29,17],[18,25],[24,26],[25,27],[28,26],[27,29],[28,23]]
+const passages = [[1,6],[0,2,7],[8,1],[9,4],[5,3],[4,11],[0],[13,1],[2,9],[8,3],[16],[5,17],[13,18],[14,7,19,12],[13,20],[16],[15,10,22,17],[11,16],[24,12],[13],[21,26,14],[27,20],[16],[29],[18,25],[24,26],[20,25],[21,28],[29,27],[23,28]]
 // const passages = [[1,6],[2,0],[3,1],[9,2],[10,5],[4],[0,7],[6,13],[14,9],[10,3,8],[11,4,9],[17,10],[13,18],[7,12],[8,15],[14,21],[22,17],[16,11],[12,19,24],[18,20],[19,21,26],[20,15],[23,16],[22,29],[18,25],[24],[27,20],[28,26],[29,27],[23,28]]
-const passages = [[6,1],[0,2],[1,3],[2,9,4],[3,5],[4,11],[0,12],[8,13],[9,7,14],[3,8,10,15],[9,16],[5,17],[13,6,18],[7,12,19],[20,8],[9],[17,10,22],[11,16,23],[12,24],[20,13],[21,19,14],[27,20,22],[16,21],[17,29],[18,25],[24,26],[25,27],[26,21,28],[29,27],[23,28]]
+// const passages = [[6,1],[0,2],[1,3],[2,9,4],[3,5],[4,11],[0,12],[8,13],[9,7,14],[3,8,10,15],[9,16],[5,17],[13,6,18],[7,12,19],[20,8],[9],[17,10,22],[11,16,23],[12,24],[20,13],[21,19,14],[27,20,22],[16,21],[17,29],[18,25],[24,26],[25,27],[26,21,28],[29,27],[23,28]]
 
 
 
@@ -63,13 +63,18 @@ function drawWalls() {
   for (let i = 0; i < passages.length; i++) {
     const x = i % columnsNum
     const y = Math.floor(i / columnsNum)
-  //ctx.font = "20px Comic Sans MS";
-  //ctx.fillText(`${i}`, x * 50 + 20, y * 50 + 30);
+    // ctx.font = "20px Comic Sans MS";
+    // ctx.fillStyle = "white"
+    // ctx.fillText(`${i}`, x * 50 + 20, y * 50 + 30);
+    ctx.fill()
+    ctx.fillStyle = "blue"
     if (passages[i].indexOf(i + 1) == -1) {
       drawRight(x,y)
     }
-    if (passages[i].indexOf(i + columnsNum) == -1)
-    drawBottom(x,y)
+    if (passages[i].indexOf(i + columnsNum) == -1) {
+      drawBottom(x,y)
+
+    }
   }
   ctx.fill()
   function drawBottom(x = 0, y = 0) {
@@ -79,20 +84,88 @@ function drawWalls() {
     ctx.rect(x * 50 + 50, y * 50, 5, 50)
   }
 }
-
-function drawCoins() {
-  ctx.fillStyle = "yellow"
-  for (let i = 0; i < columnsNum; i++) {
-    for (let j = 0; j < rowsNum; j++) {
-      ctx.beginPath()
-      ctx.arc(i * 50 + 25, j * 50 + 25, 4, 0, Math.PI * 2)
+for (let i = 0; i < passages.length; i++) {
+      const x = i % columnsNum
+      const y = Math.floor(i / columnsNum)
+      ctx.font = "20px Comic Sans MS";
+      ctx.fillStyle = "white"
+      ctx.fillText(`${i}`, x * 50 + 20, y * 50 + 30);
       ctx.fill()
     }
+
+const coinsArr = [] // coins use bigger grid to represent passages AND cells
+
+function calculateCoins() { // put a coin in every cell and on every passage
+  console.log(passages)
+  for (let i = 0; i < passages.length; i++) {
+    let x = i % 6 * 2
+    let y = Math.floor(i / 6) * 2
+    coinsArr.push([x,y])
+    if (passages[i].indexOf(i + 1) !== -1) coinsArr.push([x + 1, y])
+    if (passages[i].indexOf(i + 6) !== -1) coinsArr.push([x, y + 1])
   }
 }
 
-drawWalls()
+function drawCoins() {
+  ctx.fillStyle = "yellow"
+  ctx.fillStyle = "brown"
+  coinsArr.forEach(coin => {
+        ctx.beginPath()
+        ctx.arc(coin[0] * 25 + 25, coin[1] * 25 + 25, 4, 0, Math.PI * 2)
+        ctx.fill()
+  })
+}
+calculateCoins()
 drawCoins()
+drawWalls()
+
+
+
+document.querySelector("#canvas").addEventListener("click", (e) => {
+  const x = Math.floor(e.offsetX/50)
+  const y = Math.floor(e.offsetY/50)
+  const number = x + y * 6
+  ctx.clearRect(0, 0, 999, 999)
+  drawWalls()
+  drawCoins()
+
+  const distances = []
+  const cellsUsed = []
+  let map = passages.map(elem => elem)
+  const root = number
+  distances.push([root])
+  cellsUsed.push(root)
+
+  let temp = []
+  while (cellsUsed.length < map.length) {
+    distances[distances.length-1].forEach(cell => {
+      map[cell].forEach(way => {
+        if (cellsUsed.indexOf(way) !== -1) return
+        temp.push(way)
+        cellsUsed.push(way)
+      })
+    })
+    distances.push(temp)
+    temp = []
+  }
+
+  ctx.font = "20px Comic Sans MS";
+  ctx.fillStyle = "white"
+  for (let i = 0; i < distances.length; i++) {
+    const dist = i
+    distances[i].forEach(cell => {
+      const x = cell % columnsNum
+      const y = Math.floor(cell / columnsNum)
+      ctx.fillText(`${i}`, x * 50 + 20, y * 50 + 30);
+
+    })
+
+  }
+
+  console.log(distances)
+
+    
+})
 
 // for (let i = 0; i < passages.length; i++) {
 //   console.log(i, passages[i])
