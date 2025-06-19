@@ -50,32 +50,36 @@ for (let i = 0; i < 5 * 6; i++) {
 const selected = []
 
 function selectCells(e) {
+    const borderStyle = removePass ? "3px solid #555":"3px dotted #555"
+    const backgroundColor = removePass ? "lightBlue" : "lightGray"
+    const backgroundColor1 = removePass ? "lightBlue" : "gray"
+
     selected.push(e.target)
     if (selected.length > 2) selected.shift()
     //console.log(selected[0])
-    selected[0].style.backgroundColor = "lightGray"
-    selected[0].style.border = "none"
-    selected[1] && (selected[1].style.backgroundColor = "gray")
-    selected[1] && (selected[1].style.border = "none")
+    selected[0].style.backgroundColor = backgroundColor
+    selected[0].style.border = borderStyle
+    selected[1] && (selected[1].style.backgroundColor = backgroundColor1)
+    selected[1] && (selected[1].style.border = borderStyle)
     updateStyles(selected[0], selected[1])
 
     const diff = selected[0].number - selected[1]?.number
     switch (diff) {
         case 1:
-            selected[0].style.borderLeft = "none"
-            selected[1] && (selected[1].style.borderRight = "none")
+            selected[0].style.borderLeft = borderStyle
+            selected[1] && (selected[1].style.borderRight = borderStyle)
         break;
         case -1:
-            selected[0].style.borderRight = "none"
-            selected[1] && (selected[1].style.borderLeft = "none")
+            selected[0].style.borderRight = borderStyle
+            selected[1] && (selected[1].style.borderLeft = borderStyle)
         break;
         case 6:
-            selected[0].style.borderTop = "none"
-            selected[1] && (selected[1].style.borderBottom = "none")
+            selected[0].style.borderTop = borderStyle
+            selected[1] && (selected[1].style.borderBottom = borderStyle)
         break;
         case -6:
-            selected[0].style.borderBottom = "none"
-            selected[1] && (selected[1].style.borderTop = "none")
+            selected[0].style.borderBottom = borderStyle
+            selected[1] && (selected[1].style.borderTop = borderStyle)
         break;
     }
     console.log(diff)
@@ -87,12 +91,25 @@ function acceptSelected(e) {
     updateStyles()
 }
 
+let removePass = false
+document.addEventListener("keydown", (e)=>{
+    console.log(e.keyCode)
+    if (e.keyCode === 32) {
+        removePass = !removePass
+    }
+})
+
 function updatePassages(cellOne, cellTwo) {
     if (!cellOne || !cellTwo) return
     const to = cellOne.number
     const fro = cellTwo.number
     const diff = to - fro
     if (fro === undefined) return
+    if (removePass) {
+        passages[`${fro}`].delete(to)
+        passages[`${to}`].delete(fro)
+        return
+    }
     if (diff !== 1 && diff !== -1 && diff !== 6 && diff !== -6) return
     if ((diff === 1 || diff === -1) && Math.floor(to / 6) !== Math.floor(fro / 6)) return
     passages[`${fro}`].add(to)
