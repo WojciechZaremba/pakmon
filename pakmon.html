@@ -32,10 +32,10 @@ ctx.fillStyle = "blue"
 const columnsNum = 6
 const rowsNum = 5
 
-// const passages = [[6,1],[0,7,2],[1,3],[2,9],[10,5],[4],[0,12],[1,8,13],[9,7],[3,8,10],[11,9,4],[17,10],[18,6],[7,14],[13,20,15],[21,14],[17,22],[16,11,23],[19,12,24],[20,18],[14,19],[27,15,22],[21,16],[17,29],[18,25],[24,26],[25,27],[26,21,28],[27],[23]] // index of an array is a cell number
+const passages = [[6,1],[0,7,2],[1,3],[2,9],[10,5],[4],[0,12],[1,8,13],[9,7],[3,8,10],[11,9,4],[17,10],[18,6],[7,14],[13,20,15],[21,14],[17,22],[16,11,23],[19,12,24],[20,18],[14,19],[27,15,22],[21,16],[17,29],[18,25],[24,26],[25,27],[26,21,28],[27],[23]] // index of an array is a cell number
 // const passages = [[1,6],[2,0],[8,3,1],[2,4],[3,10,5],[4],[0,12],[],[14,2],[],[16,4],[17],[6,13,18],[14,12,19],[15,8,13],[16,14,21],[15,10,17],[16,11,23],[12,24],[13,25],[],[27,15],[],[17,29],[18],[19,26],[25,27],[28,21,26],[29,27],[23,28]]
 // const passages = [[6],[2,7],[3,1],[2,4],[5,3],[11,4],[0,12],[1,13],[9,14],[10,8],[16,9],[17,5],[6,18],[7,19],[8,15],[14,16],[22,10,15],[23,11],[12,24],[13,20],[19,21],[20,22],[21,16],[29,17],[18,25],[24,26],[25,27],[28,26],[27,29],[28,23]]
-const passages = [[1,6],[0,2,7],[8,1],[9,4],[5,3],[4,11],[0],[13,1],[2,9],[8,3],[16],[5,17],[13,18],[14,7,19,12],[13,20],[16],[15,10,22,17],[11,16],[24,12],[13],[21,26,14],[27,20],[16],[29],[18,25],[24,26],[20,25],[21,28],[29,27],[23,28]]
+// const passages = [[1,6],[0,2,7],[8,1],[9,4],[5,3],[4,11],[0],[13,1],[2,9],[8,3],[16],[5,17],[13,18],[14,7,19,12],[13,20],[16],[15,10,22,17],[11,16],[24,12],[13],[21,26,14],[27,20],[16],[29],[18,25],[24,26],[20,25],[21,28],[29,27],[23,28]]
 // const passages = [[1,6],[2,0],[3,1],[9,2],[10,5],[4],[0,7],[6,13],[14,9],[10,3,8],[11,4,9],[17,10],[13,18],[7,12],[8,15],[14,21],[22,17],[16,11],[12,19,24],[18,20],[19,21,26],[20,15],[23,16],[22,29],[18,25],[24],[27,20],[28,26],[29,27],[23,28]]
 // const passages = [[6,1],[0,2],[1,3],[2,9,4],[3,5],[4,11],[0,12],[8,13],[9,7,14],[3,8,10,15],[9,16],[5,17],[13,6,18],[7,12,19],[20,8],[9],[17,10,22],[11,16,23],[12,24],[20,13],[21,19,14],[27,20,22],[16,21],[17,29],[18,25],[24,26],[25,27],[26,21,28],[29,27],[23,28]]
 
@@ -73,7 +73,6 @@ function drawWalls() {
     }
     if (passages[i].indexOf(i + columnsNum) == -1) {
       drawBottom(x,y)
-
     }
   }
   ctx.fill()
@@ -119,16 +118,97 @@ calculateCoins()
 drawCoins()
 drawWalls()
 
+let distCalculated = []
+let distSegregated = []
+const ghostPosition = {
+  x: 10,
+  y: 7,
+  cell: 0
+}
+const ghost = new Image()
+ghost.src = "duch.png"
 
+const gameTick = setInterval(frame, 300)
+ 
+function frame() {
+  updateGhostPosition()
+  
+  ctx.clearRect(0, 0, 999, 999)
+  drawWalls()
+  drawCoins()
+  ctx.font = "20px Comic Sans MS";
+  ctx.fillStyle = "white"
+  for (let i = 0; i < distCalculated.length; i++) {
+    const dist = i
+    distCalculated[i].forEach(cell => {
+      const x = cell % columnsNum
+      const y = Math.floor(cell / columnsNum)
+      ctx.fillText(`${i}`, x * 50 + 20, y * 50 + 30);
+    })
+  }
+  drawGhost()
+  // drawCoins()
+  // drawWalls()
+}
+
+function updateGhostPosition() {
+  const currCell = ghostPosition.cell
+  const currDist = distSegregated[currCell]
+  const neighbours = passages[currCell]
+
+  console.log("currDist", currDist)
+  for (let i = 0; i < neighbours.length; i++) {
+    const neig = neighbours[i]
+    const neigDist = distSegregated[neig]
+    if (neigDist < currDist && neigDist !== -1) {
+      ghostPosition.cell = neig
+      break
+    }
+  }
+
+
+
+  // neighbours.forEach(neig => {
+  //   console.log(neig)
+  //   const neigDist = distSegregated.indexOf(neig)
+  //   console.log(neig, neigDist)
+  // })
+
+
+
+
+//   const currCell = ghostPosition.cell
+//   const cellDist = distSegregated.indexOf(currCell)
+//   const neighbours = passages[currCell]
+
+//   let tempDist = 999
+//   let nextPos = ghost.cell
+//   neighbours.forEach(cell => {
+//     if (distSegregated.indexOf(cell) < tempDist) {
+//       tempDist = distSegregated.indexOf(cell)
+//       nextPos = cell
+//     }
+//   })
+// ghostPosition.cell = nextPos
+}
+
+function drawGhost() {
+  const x = ghostPosition.cell % 6 * 50 + 10
+  const y = Math.floor(ghostPosition.cell / 6) * 50 + 10
+  ctx.drawImage(ghost, x, y)
+
+}
 
 document.querySelector("#canvas").addEventListener("click", (e) => {
+
+  //const startTime = performance.now()
   const x = Math.floor(e.offsetX/50)
   const y = Math.floor(e.offsetY/50)
   const number = x + y * 6
   ctx.clearRect(0, 0, 999, 999)
   drawWalls()
   drawCoins()
-
+  
   const distances = []
   const cellsUsed = []
   let map = passages.map(elem => elem)
@@ -145,8 +225,17 @@ document.querySelector("#canvas").addEventListener("click", (e) => {
         cellsUsed.push(way)
       })
     })
+    if (temp.length == 0) break
     distances.push(temp)
     temp = []
+  }
+  
+  distCalculated = distances
+  for (let i = 0; i < distCalculated.length; i++) {
+    const dist = i
+    distCalculated[i].forEach(cell => {
+      distSegregated[cell] = dist
+    })
   }
 
   ctx.font = "20px Comic Sans MS";
@@ -157,13 +246,13 @@ document.querySelector("#canvas").addEventListener("click", (e) => {
       const x = cell % columnsNum
       const y = Math.floor(cell / columnsNum)
       ctx.fillText(`${i}`, x * 50 + 20, y * 50 + 30);
-
     })
-
   }
+  drawGhost()
 
-  console.log(distances)
+  // const endTime = performance.now()
 
+  //console.log(`took ${endTime - startTime} milliseconds`)
     
 })
 
