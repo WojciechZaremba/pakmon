@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>movement testing</title>
+    <style>
+        body {
+            background-color: black;
+        }
+        canvas {
+            border: 1px solid white;
+            margin: 45px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" width="300" height="250"></canvas>
+    <script>
+
+const my_canvas = document.getElementById("canvas")
+const ctx = my_canvas.getContext("2d")
+
+function drawGrid() {
+    for (let i = 1; i < 6; i++) {
+        for (let j = 1; j < 5; j++) {
+            ctx.beginPath()
+            ctx.fillStyle = "white"
+            ctx.rect(i * 50 - 2, j * 50 - 2, 4, 4)
+            ctx.fill()
+        }
+    }
+}
+drawGrid()
+
+let playerCell = 0
+let targetCell = 0
+
+let quedDirection = ""
+
+function initiateMovement(e) {
+    const prevPos = targetCell
+    playerCell = prevPos
+    switch (e?.key || quedDirection) {
+        case "ArrowRight":
+            targetCell = targetCell + 1
+        break
+        case "ArrowLeft":
+            targetCell = targetCell - 1
+        break
+        case "ArrowUp":
+            targetCell = targetCell - 6
+        break
+        case "ArrowDown":
+            targetCell = targetCell + 6
+        break
+    }
+
+    if (prevPos % 6 === 0 && prevPos - targetCell === 1) {
+        console.log("crossed left wall")
+        targetCell = prevPos
+        quedDirection = ""
+        return
+    } else if ((prevPos + 1) % 6 === 0 && prevPos - targetCell === -1) {
+        console.log("crossed right wall")
+        targetCell = prevPos
+        quedDirection = ""
+        return
+    } else if (prevPos >= 24 && prevPos - targetCell === -6) {
+        console.log("crossed bottom wall")
+        targetCell = prevPos
+        quedDirection = ""
+        return
+    } else if (prevPos < 6 && prevPos - targetCell === 6) {
+        console.log("crossed top wall")
+        targetCell = prevPos
+        quedDirection = ""
+        return
+    }
+    animateBetween(prevPos - targetCell)
+    //frame()
+}
+
+function drawPlayer() {
+    const playerX = playerCell % 6
+    const playerY = Math.floor(playerCell / 6)
+    
+    const targetX = targetCell % 6
+    const targetY = Math.floor(targetCell / 6)
+    
+    ctx.beginPath()
+    ctx.fillStyle = "orange"
+    ctx.rect(targetX * 50, targetY * 50, 50, 50)
+    ctx.fill()
+    
+    ctx.beginPath()
+    ctx.arc(playerX * 50 + 25, playerY * 50 + 25, 25, 0, Math.PI * 2)
+    ctx.fillStyle = "yellow"
+    //ctx.rect(playerX * 50, playerY * 50, 50, 50)
+    ctx.fill()
+}
+drawPlayer()
+
+function queueNextMove(e) {
+    switch(e.type) {
+        case "keydown":
+            // if (quedDirection === "") {
+            if (true) {
+                console.log(quedDirection)
+                quedDirection = e.key
+                console.log(quedDirection)
+            }
+            break
+            case "keyup":
+                if (quedDirection !== "") {
+                console.log(quedDirection)
+                quedDirection = ""
+                console.log(quedDirection)
+            }
+        break
+    }
+}
+
+function animateBetween(dirNum) {
+    const playerX = playerCell % 6
+    const playerY = Math.floor(playerCell / 6)
+
+    const targetX = targetCell % 6
+    const targetY = Math.floor(targetCell / 6)
+
+    const xStep = (targetX - playerX) * 5
+    const yStep = (targetY - playerY) * 5
+
+    document.removeEventListener("keydown", initiateMovement)
+    //document.addEventListener("keydown", queueNextMove)
+    //document.addEventListener("keyup", queueNextMove)
+
+    function nextFrame(x, y, frame) {
+        frame += 1
+        x += xStep
+        y += yStep
+        
+        ctx.clearRect(0, 0, 300, 250)
+        drawGrid()
+
+        ctx.beginPath()
+        ctx.arc(playerX * 50 + 25 + x, playerY * 50 + 25 + y, 25, 0, Math.PI * 2)
+        ctx.fillStyle = "yellow"
+        //ctx.rect(xp * 50, yp * 50, 50, 50)
+        ctx.fill()
+
+        setTimeout(() => {
+            if (frame >= 10) {
+                document.addEventListener("keydown", initiateMovement)
+                //document.removeEventListener("keydown", queueNextMove)
+                //document.removeEventListener("keyup", queueNextMove)   
+                return initiateMovement()
+            }
+            nextFrame(x, y, frame)
+        }, 30)
+    }
+    nextFrame(0, 0, 0)
+}
+
+function frame() {
+    ctx.clearRect(0, 0, 300, 250)
+    drawGrid()
+    drawPlayer()
+}
+
+document.addEventListener("keydown", initiateMovement)
+document.addEventListener("keydown", queueNextMove)
+
+    </script>
+</body>
+</html>
