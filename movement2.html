@@ -9,11 +9,21 @@
         canvas {
             border: 1px solid white;
             margin: 45px;
+            margin-bottom: 0px;
+        }
+        div {
+            color: white;
         }
     </style>
 </head>
 <body>
     <canvas id="canvas" width="300" height="250"></canvas>
+    <div id="par1">Current direction:</div>
+    <div id="par2">Queued direction: </div>
+    <div id="par3">Player cell: </div>
+    <div id="par4">Target Cell: </div>
+    <div id="par5">Coins left: </div>
+    <div id="par6"></div>
     <script>
 
 const my_canvas = document.getElementById("canvas")
@@ -31,48 +41,118 @@ function drawGrid() {
 }
 drawGrid()
 
+const coinsGrid = []
+
+function createCoinsGrid() { 
+    for (let i = 0; i < 9; i++) {
+        const row = []
+        for (let j = 0; j < 11; j++) {
+            if (i % 2 === 1 && j % 2 === 1) {
+                row.push("empty")
+                continue
+            }
+            row.push("coin")
+        }
+        coinsGrid.push(row)
+    }
+
+console.log(coinsGrid)
+    // for (let i = 0; i < 30; i++) {
+    //     let x = i % 6 * 2
+    //     let y = Math.floor(i / 6) * 2
+    //     coinsGrid.push([x,y])
+    //     //if ((i + 1) % 6 !== 0) coinsGrid.push([x + 1, y]) // dont draw on the right wall
+    //     //if (i < 24) coinsGrid.push([x, y + 1]) // dont draw on the bottom
+    // }
+}
+createCoinsGrid()
+
+function drawCoins() {
+    ctx.fillStyle = "yellow"
+    ctx.fillStyle = "green"
+    // ctx.fillStyle = "brown"
+    for (let i = 0; i < coinsGrid.length; i++) {
+        for (let j = 0; j < coinsGrid[0].length; j++) {
+            if (coinsGrid[i][j] === "coin") {
+                ctx.beginPath()
+                ctx.arc(j * 25 + 25, i * 25 + 25, 2, 0, Math.PI * 2)
+                ctx.fill()
+            }
+        }
+    }
+}
+drawCoins()
+
+function updateCoinsGrid() {
+    console.log(coinsGrid)
+}
+
 let playerCell = 0
 let targetCell = 0
 
+let currentDirection = ""
 let quedDirection = ""
 
 function initiateMovement(e) {
     const prevPos = targetCell
+    par3.innerText = `Player cell: ${prevPos}`
     playerCell = prevPos
-    switch (e?.key || quedDirection) {
+    switch (e?.key || quedDirection || currentDirection) { // key pressed, new key pressed, key released
         case "ArrowRight":
             targetCell = targetCell + 1
-        break
+            currentDirection = "ArrowRight"
+            par1.innerText = "Current direction: ArrowRight"
+            break
         case "ArrowLeft":
             targetCell = targetCell - 1
+            currentDirection = "ArrowLeft"
+            par1.innerText = "Current direction: ArrowLeft"
         break
         case "ArrowUp":
             targetCell = targetCell - 6
+            currentDirection = "ArrowUp"
+            par1.innerText = "Current direction: ArrowUp"
         break
         case "ArrowDown":
             targetCell = targetCell + 6
-        break
-    }
-
-    if (prevPos % 6 === 0 && prevPos - targetCell === 1) {
+            currentDirection = "ArrowDown"
+            par1.innerText = "Current direction: ArrowDown"
+            break
+        }
+        par4.innerText = `Target cell: ${targetCell}`
+    
+    // need to initiate mvoement again if player tries to go through an obstacle
+    if (prevPos % 6 === 0 && prevPos - targetCell === 1) { 
         console.log("crossed left wall")
         targetCell = prevPos
         quedDirection = ""
+        currentDirection = ""
+        par1.innerText = "Current direction:"
+        par2.innerText = "Queued direction:"
         return
     } else if ((prevPos + 1) % 6 === 0 && prevPos - targetCell === -1) {
         console.log("crossed right wall")
         targetCell = prevPos
         quedDirection = ""
+        currentDirection = ""
+        par1.innerText = "Current direction:"
+        par2.innerText = "Queued direction:"
         return
     } else if (prevPos >= 24 && prevPos - targetCell === -6) {
         console.log("crossed bottom wall")
         targetCell = prevPos
         quedDirection = ""
+        currentDirection = ""
+        par1.innerText = "Current direction:"
+        par2.innerText = "Queued direction:"
         return
     } else if (prevPos < 6 && prevPos - targetCell === 6) {
         console.log("crossed top wall")
         targetCell = prevPos
         quedDirection = ""
+        currentDirection = ""
+        par1.innerText = "Current direction:"
+        par2.innerText = "Queued direction:"
         return
     }
     animateBetween(prevPos - targetCell)
@@ -92,31 +172,38 @@ function drawPlayer() {
     ctx.fill()
     
     ctx.beginPath()
-    ctx.arc(playerX * 50 + 25, playerY * 50 + 25, 25, 0, Math.PI * 2)
+    ctx.arc(playerX * 50 + 25, playerY * 50 + 25, 15, 0, Math.PI * 2)
     ctx.fillStyle = "yellow"
     //ctx.rect(playerX * 50, playerY * 50, 50, 50)
     ctx.fill()
 }
 drawPlayer()
 
+function drawAnimPlayer(x,y) {
+    const playerX = playerCell % 6
+    const playerY = Math.floor(playerCell / 6)
+    
+    ctx.beginPath()
+    ctx.arc(playerX * 50 + 25 + x, playerY * 50 + 25 + y, 15, 0, Math.PI * 2)
+    ctx.fillStyle = "yellow"
+    ctx.fill()
+}
+
 function queueNextMove(e) {
-    switch(e.type) {
-        case "keydown":
-            // if (quedDirection === "") {
-            if (true) {
-                console.log(quedDirection)
-                quedDirection = e.key
-                console.log(quedDirection)
-            }
-            break
-            case "keyup":
-                if (quedDirection !== "") {
-                console.log(quedDirection)
-                quedDirection = ""
-                console.log(quedDirection)
-            }
-        break
-    }
+    console.log(quedDirection)
+    quedDirection = e.key
+    par2.innerText = `Queued direction: ${e.key}` 
+    console.log(quedDirection)
+}
+function unQueueNextMove(e) {
+    //currentDirection = quedDirection // this is wrong
+
+    // timeouting this makes turning easier
+    setTimeout(() => {
+        quedDirection = ""
+        par1.innerText = `Current direction: ${currentDirection}`
+        par2.innerText = `Queued direction:`
+    }, 1000)
 }
 
 function animateBetween(dirNum) {
@@ -126,7 +213,7 @@ function animateBetween(dirNum) {
     const targetX = targetCell % 6
     const targetY = Math.floor(targetCell / 6)
 
-    const xStep = (targetX - playerX) * 5
+    const xStep = (targetX - playerX) * 5 // 5 means 5 pixels in some dircection
     const yStep = (targetY - playerY) * 5
 
     document.removeEventListener("keydown", initiateMovement)
@@ -141,21 +228,23 @@ function animateBetween(dirNum) {
         ctx.clearRect(0, 0, 300, 250)
         drawGrid()
 
-        ctx.beginPath()
-        ctx.arc(playerX * 50 + 25 + x, playerY * 50 + 25 + y, 25, 0, Math.PI * 2)
-        ctx.fillStyle = "yellow"
-        //ctx.rect(xp * 50, yp * 50, 50, 50)
-        ctx.fill()
+        drawAnimPlayer(x, y)
+        drawCoins()
+        // ctx.beginPath()
+        // ctx.arc(playerX * 50 + 25 + x, playerY * 50 + 25 + y, 15, 0, Math.PI * 2)
+        // ctx.fillStyle = "yellow"
+        // //ctx.rect(xp * 50, yp * 50, 50, 50)
+        // ctx.fill()
 
         setTimeout(() => {
-            if (frame >= 10) {
+            if (frame >= 10) { // 5 pixels 10 times gives cell size (50 px)
                 document.addEventListener("keydown", initiateMovement)
                 //document.removeEventListener("keydown", queueNextMove)
                 //document.removeEventListener("keyup", queueNextMove)   
                 return initiateMovement()
             }
             nextFrame(x, y, frame)
-        }, 30)
+        }, 25)
     }
     nextFrame(0, 0, 0)
 }
@@ -164,10 +253,12 @@ function frame() {
     ctx.clearRect(0, 0, 300, 250)
     drawGrid()
     drawPlayer()
+    drawCoins()
 }
 
 document.addEventListener("keydown", initiateMovement)
 document.addEventListener("keydown", queueNextMove)
+document.addEventListener("keyup", unQueueNextMove)
 
     </script>
 </body>
