@@ -49,7 +49,7 @@ const level = [[6,1],[0,7,2],[1,3],[2,9],[10,5],[4],[0,12],[1,8,13],[9,7],[3,8,1
 
 const levelFormatted = {}
 
-function formatLevel() {
+function formatLevel() { // adds a cell between every "level" cell
     for (let i = 0; i < level.length; i++) {
         const floor = Math.floor(i / columnsNum)
         const skip = floor * (columnsNum - 1) * 2
@@ -124,8 +124,8 @@ function drawGrid() {
     for (let i = 1; i < gridRows; i++) {
         for (let j = 1; j < gridColumns; j++) {
             ctx.beginPath()
-            ctx.fillStyle = "white"
-            ctx.rect(j * cellWidth - 2, i * cellHeight - 2, 2, 2)
+            ctx.fillStyle = "darkgray"
+            ctx.rect(j * cellWidth - 2, i * cellHeight - 2, 1, 1)
             ctx.fill()
         }
     }
@@ -154,36 +154,74 @@ function drawWalls() {
 }
 
 function createCoinsGrid() {
-    for (let i = 0; i < gridColumns - 1; i++) coinsGrid.push([])
+    console.log("create coins grid")
+    
+    const cellsAvaiable = Object.keys(levelFormatted)
+    console.log(cellsAvaiable)
 
-    coinsGrid.forEach(row => {
-        for (let i = 0; i < gridRows - 1; i++) {
-            row.push("coin")
-        }
-    })
+    cellsAvaiable.forEach(cell => coinsGrid.push(Number(cell)))
 
-    for (let i = 0; i < levelMap.length; i++) {
-        const x = i % columnsNum
-        const y = Math.floor(i / columnsNum)
+    // for (let i = 0; i < gridColumns - 1; i++) coinsGrid.push([])
+
+    // coinsGrid.forEach(row => {
+    //     for (let i = 0; i < gridRows - 1; i++) {
+    //         row.push("coin")
+    //     }
+    // })
+
+    // for (let i = 0; i < levelMap.length; i++) {
+    //     const x = i % columnsNum
+    //     const y = Math.floor(i / columnsNum)
         
-        // const curr = i * 2
-        // const next = curr + 1
-        // console.log(curr, next)
-    }
-    console.log(coinsGrid)
+    //     // const curr = i * 2
+    //     // const next = curr + 1
+    //     // console.log(curr, next)
+    // }
+    // console.log(coinsGrid)
 }
 
 function drawCoins() {
     ctx.fillStyle = "yellow"
-    for (let x = 0; x < coinsGrid.length; x++) {
-        for (let y = 0; y < coinsGrid[0].length; y++) {
-            if (coinsGrid[x][y] === "coin") {
-                ctx.beginPath()
-                ctx.arc((x+1) * 25, (y+1) * 25, 2, 0, Math.PI * 2)
-                ctx.fill()
-            }
-        }
-    }
+    console.log(gridColumns)
+    console.log(gridRows)
+
+    coinsGrid.forEach(coin => {
+        console.log(coin)
+        console.log(coin % 11, coin / 11)
+        
+        const x = coin % 11 + 1
+        const y = Math.floor(coin / 11) + 1
+
+        ctx.font = "10px Comic Sans MS"
+        ctx.fillStyle = "purple"
+        ctx.fillText(`${coin}`, x * 25, y * 25)
+        
+        ctx.fillStyle = "yellow"
+        ctx.beginPath()
+        ctx.arc(x * 25, y * 25, 4, 0, Math.PI * 2)
+        ctx.fill()
+        
+        // const x = (coin % (gridColumns - 1))
+        // const y = Math.floor(coin / gridColumns - 1)
+        // console.log(x, y)
+        // ctx.beginPath()
+        // ctx.arc((x) * 25, (y) * 25, 1, 0, Math.PI * 2)
+        // ctx.fill()
+        // ctx.font = "20px Comic Sans MS"
+        // ctx.fillStyle = "yellow"
+        // ctx.fillText(`${coin}`, x * 25, y * 25)
+    })
+    
+    // for (let x = 0; x < coinsGrid.length; x++) {
+    //     for (let y = 0; y < coinsGrid[0].length; y++) {
+    //         if (coinsGrid[x][y] === "coin") {
+    //             ctx.beginPath()
+    //             ctx.arc((x+1) * 25, (y+1) * 25, 2, 0, Math.PI * 2)
+    //             ctx.fill()
+    //         }
+    //     }
+    // }
+
     // for (let i = 0; i < level.length; i++) {
     //     let x = i % 6 * 2
     //     let y = Math.floor(i / 6) * 2
