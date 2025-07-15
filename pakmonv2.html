@@ -309,8 +309,8 @@ function createPathFinding() {
     let temp = []
     while (cellsUsed.length < passages.length) {
         distances[distances.length - 1].forEach(cell => {
-        passages[cell].forEach(way => {
-            if (cellsUsed.indexOf(way) !== -1) return
+            passages[cell].forEach(way => {
+                if (cellsUsed.indexOf(way) !== -1) return
                 temp.push(way)
                 cellsUsed.push(way)
             })

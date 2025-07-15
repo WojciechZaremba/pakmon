@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>pakmon v3</title>
+    <style>
+        body {
+            background-color: black;
+        }
+        canvas {
+            border: 1px solid white;
+            margin: 45px;
+            margin-bottom: 0px;
+        }
+        div {
+            color: white;
+        }
+    </style>
+    
+</head>
+<body>
+    <canvas id="canvas" width="300" height="250"></canvas>
+    <div id="par1">Current direction:</div>
+    <div id="par2">Queued direction: </div>
+    <div id="par3">Player cell: </div>
+    <div id="par4">Target Cell: </div>
+    <div id="par5">Coins left: </div>
+    <div id="par6"></div>
+
+<script>
+
+const my_canvas = document.getElementById("canvas")
+const ctx = my_canvas.getContext("2d")
+
+const canvasWidth = 300
+const canvasHeight = 250
+
+my_canvas.width = canvasWidth
+my_canvas.height = canvasHeight
+
+const rowsNum = 5
+const columnsNum = 6
+const gridRows = rowsNum * 2
+const gridColumns = columnsNum * 2
+
+const cellWidth = canvasWidth / gridColumns
+const cellHeight = canvasHeight / gridRows
+
+// const level = [[6],[2,7],[3,1],[2,4],[5,3],[11,4],[0,12],[1,13],[9,14],[10,8],[16,9],[17,5],[6,18],[7,19],[8,15],[14,16],[22,10,15],[23,11],[12,24],[13,20],[19,21],[20,22],[21,16],[29,17],[18,25],[24,26],[25,27],[28,26],[27,29],[28,23]]
+const level = [[6,1],[0,7,2],[1,3],[2,9],[10,5],[4],[0,12],[1,8,13],[9,7],[3,8,10],[11,9,4],[17,10],[18,6],[7,14],[13,20,15],[21,14],[17,22],[16,11,23],[19,12,24],[20,18],[14,19],[27,15,22],[21,16],[17,29],[18,25],[24,26],[25,27],[26,21,28],[27],[23]]
+const levelFormatted = {} // added a cell between every cell from a "level"
+const coinsGrid = [] // contains numbers of cells with a coin in them
+let distanceGrid = [] // cells grouped and sorted by a distance
+const player = {
+    cell: 13,
+    position: {x: 0, y: 0}, // use as where to draw in pixels
+    direction: {x: 0, y: 0}
+}
+const ghost = {
+    cell: 10,
+    position: {x: 0, y: 0},
+    direction: {x: 0, y: 0}
+}
+
+formatLevel()
+createCoinsGrid()
+createPathFinding()
+
+drawGrid()
+drawWalls()
+//drawCoins()
+drawPlayer()
+drawGhost()
+
+setInterval(() => {
+    drawFrame()
+}, 16)
+// setInterval(() => {
+//     updateGhost()
+// }, 666)
+
+function drawFrame() {
+    ctx.clearRect(0, 0, 300, 250)
+    drawGrid()
+    drawWalls()
+    //drawCoins()
+    drawPlayer()
+    drawGhost()
+    ctx.font = "12px Comic Sans MS";
+    ctx.fillStyle = "orange"
+    for (let i = 0; i < distanceGrid.length; i++) {
+        const dist = i
+        distanceGrid[i].forEach(cell => {
+            const x = cell % (gridColumns-1)
+            const y = Math.floor(cell / (gridColumns-1))
+            ctx.fillText(`${i}`, x * 25 + 25, y * 25 + 25)
+        })
+    }
+}
+
+// ghost movement will be made with a recurent funciton:
+// setInterval(() => {
+//     console.log("tick")
+//     updateGhost()
+//     drawFrame()
+// }, 500)
+
+
+function updatePlayer(e) {
+    console.log(e.key)
+    console.log(player.cell)
+
+    switch (e.key) {
+        case "ArrowLeft":
+            player.cell += -1
+        break
+        case "ArrowRight":
+            player.cell += 1
+        break
+        case "ArrowUp":
+            player.cell += -11
+        break
+        case "ArrowDown":
+            player.cell += 11
+        break
+    }
+    createPathFinding()
+    //drawFrame()
+}
+document.addEventListener("keydown", updatePlayer)
+
+function updateGhost() {
+    console.log("ghost update")
+    const cell = ghost.cell
+
+    let dist = 0
+    for (let i = 0; i < distanceGrid.length; i++) {
+        if (distanceGrid[i].indexOf(cell) !== -1) {
+            dist = i
+            break
+        }
+    }
+    if (dist === 0) return
+
+    const possibleMoves = distanceGrid[dist - 1].filter(nextCell => {
+        let result = false
+        // those numbers are hardcoded for a 6x5 level:
+        // note: this causes a strange behaviour when a ghost can rarely teleport through a side wall
+        if (nextCell - cell === 1  || 
+            nextCell - cell === -1 ||
+            nextCell - cell === 11 ||
+            nextCell - cell === -11
+        ) {
+            result = true
+        }
+        return result
+    })
+    const nextMove = possibleMoves[Math.floor(Math.random() * possibleMoves.length)]
+    const direction = nextMove - cell
+    console.log(direction)
+
+    // console.log(possibleMoves)
+    // console.log(nextMove)
+
+    // console.log("ghost's cell: ", cell)
+    // console.log("distance to a player: ",dist)
+
+    ghost.position.x = ghost.cell % (gridColumns-1) * cellWidth
+    ghost.position.y = Math.floor(ghost.cell / (gridColumns-1)) * cellHeight
+    ghost.cell = nextMove
+
+    // setTimeout(updateGhost,666)
+
+    animateGhost(cell, nextMove, 0)
+    function animateGhost(nextMove, cell, animFrame = 0) {
+        console.log(animFrame)
+        if (direction === -1) {
+            ghost.position.x -= 1
+        } else if (direction === 1) {
+            ghost.position.x += 1
+        }  else if (direction === -11) {
+            ghost.position.y -= 1
+        }  else if (direction === 11) {
+            ghost.position.y += 1
+        }
+        if (animFrame >= 25) {
+            return updateGhost()
+        }
+        setTimeout(() => animateGhost(nextMove, cell, ++animFrame), 8)
+    }
+}
+updateGhost()
+
+
+function createPathFinding() {
+    distanceGrid = []
+
+    const x = player.cell % gridColumns
+    const y = Math.floor(player.cell / gridColumns)
+
+    const passagesObj = levelFormatted
+    const cellsAvaiable = Object.keys(levelFormatted)
+
+    // reminder: operations on sortedByDistance change distanceGrid too
+    const sortedByDistance = distanceGrid  
+    const cellsUsed = []
+
+    const root = player.cell
+
+    sortedByDistance.push([root])
+    cellsUsed.push(root)
+
+    let temp = []
+    while (cellsUsed.length < cellsAvaiable.length) {
+        sortedByDistance[sortedByDistance.length - 1].forEach(cell => {
+            passagesObj[cell].forEach(openTo => {
+                if (cellsUsed.indexOf(openTo) !== -1) return
+                temp.push(openTo)
+                cellsUsed.push(openTo)
+            })
+        })
+        if (temp.length === 0) break
+        sortedByDistance.push(temp)
+        temp = []
+    }
+
+    console.log(sortedByDistance)
+    ctx.font = "12px Comic Sans MS";
+    ctx.fillStyle = "orange"
+    for (let i = 0; i < sortedByDistance.length; i++) {
+        const dist = i
+        sortedByDistance[i].forEach(cell => {
+            const x = cell % (gridColumns-1)
+            const y = Math.floor(cell / (gridColumns-1))
+            ctx.fillText(`${i}`, x * 25 + 25, y * 25 + 25)
+        })
+    }
+}
+
+function drawPlayer() {
+   const x = player.cell % (gridColumns-1)
+   const y = Math.floor(player.cell / (gridColumns-1))
+
+    ctx.beginPath()
+    ctx.arc(x * cellWidth + 25, y * cellHeight + 25, 12, 0, Math.PI * 2)
+    ctx.fillStyle = "yellow"
+    ctx.fill()
+
+    ctx.strokeStyle = "black"
+    ctx.strokeText("^  ^", x * cellWidth + 18, y * cellHeight + 32,14);
+}
+function drawGhost() {
+    // const x = ghost.cell % (gridColumns-1) * cellWidth
+    // const y = Math.floor(ghost.cell / (gridColumns-1)) * cellHeight
+
+    const x = ghost.position.x
+    const y = ghost.position.y
+
+    ctx.beginPath()
+    // ctx.arc(x * cellWidth + 25, y * cellHeight + 25, 13, 0, Math.PI * 2)
+    ctx.fillStyle = "blue"
+    ctx.rect(x + 14, y + 10, 23, 23)
+    ctx.fill()
+
+    ctx.strokeStyle = "white"
+    ctx.strokeText("-_-", x + 17, y + 25, 20);
+}
+
+function formatLevel() { // adds a cell between every "level" cell
+    for (let i = 0; i < level.length; i++) {
+        const floor = Math.floor(i / columnsNum)
+        const skip = floor * (columnsNum - 1) * 2
+        const newIdx = i * 2 + skip
+
+        levelFormatted[newIdx] = []
+        
+        level[i].forEach(pass => {
+            let diff = pass - i
+            if (diff === -6) diff = -11
+            else if (diff === 6) diff = 11
+            const newPass = newIdx + diff
+            levelFormatted[newIdx].push(newPass)
+
+            if (levelFormatted[newPass] === undefined) levelFormatted[newPass] = []
+            if (levelFormatted[newPass].indexOf(newIdx) == -1) levelFormatted[newPass].push(newIdx)
+        })
+    }
+}
+
+// console.log(level.length)
+// for (let i = 0; i < level.length; i++) {
+//     const floor = Math.floor(i / columnsNum)
+//     const skip = floor * (gridColumns - 2)
+//     const newIdx = i * 2 + skip
+   
+    // console.log(i, i*2, skip, i*2 + skip)
+    
+    // const yNum = Math.floor(i / (gridColumns - 1))
+    // if (yNum % 2 !== 0) continue
+
+    // console.log(i)
+
+
+
+    // LevelFormatted[i*2] = []
+    // level[i].forEach(pass => {
+    //     const direction = pass - i
+    //     const newIdx = i * 2
+    //     let newPass = newIdx + direction
+
+    //     if (direction == 6 || direction == -6) {
+    //         newPass = -99
+    //         // newPass = newIdx + direction * 2 - 1
+    //     }
+
+    //     LevelFormatted[newIdx].push(newPass)
+
+    //     //console.log(i, pass)
+
+    //     //LevelFormatted[i*2].push(pass)
+    // })
+// }
+
+// const levelMap = level.map(elem => {
+//     const mapped = []
+//     elem.forEach(passage => {
+//         mapped.push(passage * 2)
+//     })
+//     return mapped
+// })
+
+function drawGrid() {
+    for (let i = 1; i < gridRows; i++) {
+        for (let j = 1; j < gridColumns; j++) {
+            ctx.beginPath()
+            ctx.fillStyle = "darkgray"
+            ctx.rect(j * cellWidth - 2, i * cellHeight - 2, 1, 1)
+            ctx.fill()
+        }
+    }
+}
+
+function drawWalls() {
+    ctx.beginPath()
+    ctx.fillStyle = "red"
+    for (let i = 0; i < level.length; i++) {
+        const x = i % columnsNum
+        const y = Math.floor(i / columnsNum)
+        if (level[i].indexOf(i + 6) === -1) {
+            ctx.rect(
+                x * cellWidth * 2,
+                y * cellHeight * 2 + cellHeight * 2,
+                55, 5)
+        }
+        if (level[i].indexOf(i + 1) === -1) {
+            ctx.rect(
+                x * cellWidth * 2 + cellHeight * 2,
+                y * cellHeight * 2,
+                5, 55)
+            }
+        }
+    ctx.fill()
+}
+
+function createCoinsGrid() {
+    // console.log("create coins grid")
+    
+    const cellsAvaiable = Object.keys(levelFormatted)
+    // console.log(cellsAvaiable)
+
+    cellsAvaiable.forEach(cell => coinsGrid.push(Number(cell)))
+
+    // for (let i = 0; i < gridColumns - 1; i++) coinsGrid.push([])
+
+    // coinsGrid.forEach(row => {
+    //     for (let i = 0; i < gridRows - 1; i++) {
+    //         row.push("coin")
+    //     }
+    // })
+
+    // for (let i = 0; i < levelMap.length; i++) {
+    //     const x = i % columnsNum
+    //     const y = Math.floor(i / columnsNum)
+        
+    //     // const curr = i * 2
+    //     // const next = curr + 1
+    //     // console.log(curr, next)
+    // }
+    // console.log(coinsGrid)
+}
+
+function drawCoins() {
+    ctx.fillStyle = "yellow"
+    // console.log(gridColumns)
+    // console.log(gridRows)
+
+    coinsGrid.forEach(coin => {
+        // console.log(coin)
+        // console.log(coin % 11, coin / 11)
+        
+        const x = coin % 11 + 1
+        const y = Math.floor(coin / 11) + 1
+
+        // ctx.font = "10px Comic Sans MS"
+        // ctx.fillStyle = "purple"
+        // ctx.fillText(`${coin}`, x * 25, y * 25)
+        
+        ctx.fillStyle = "yellow"
+        ctx.beginPath()
+        ctx.arc(x * 25, y * 25, 4, 0, Math.PI * 2)
+        ctx.fill()
+        
+        // const x = (coin % (gridColumns - 1))
+        // const y = Math.floor(coin / gridColumns - 1)
+        // console.log(x, y)
+        // ctx.beginPath()
+        // ctx.arc((x) * 25, (y) * 25, 1, 0, Math.PI * 2)
+        // ctx.fill()
+        // ctx.font = "20px Comic Sans MS"
+        // ctx.fillStyle = "yellow"
+        // ctx.fillText(`${coin}`, x * 25, y * 25)
+    })
+    
+    // for (let x = 0; x < coinsGrid.length; x++) {
+    //     for (let y = 0; y < coinsGrid[0].length; y++) {
+    //         if (coinsGrid[x][y] === "coin") {
+    //             ctx.beginPath()
+    //             ctx.arc((x+1) * 25, (y+1) * 25, 2, 0, Math.PI * 2)
+    //             ctx.fill()
+    //         }
+    //     }
+    // }
+
+    // for (let i = 0; i < level.length; i++) {
+    //     let x = i % 6 * 2
+    //     let y = Math.floor(i / 6) * 2
+    // }
+
+    // for (let i = 0; i < rowsNum; i++) {
+    //     for (let j = 0; j < columnsNum; j++) {
+    //         ctx.beginPath()
+    //         ctx.arc(
+    //             j * 2 * 25 + 25,
+    //             i * 2 * 25 + 25,
+    //             3, 0, Math.PI * 2)
+    //         ctx.fill()
+    //     }
+    // }
+}
+
+
+</script>
+
+</body>
+</html>
