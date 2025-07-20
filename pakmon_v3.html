@@ -51,14 +51,19 @@ const levelFormatted = {} // added a cell between every cell from a "level"
 const coinsGrid = [] // contains numbers of cells with a coin in them
 let distanceGrid = [] // cells grouped and sorted by a distance
 const player = {
-    cell: 13,
-    position: {x: 0, y: 0}, // use as where to draw in pixels
-    direction: {x: 0, y: 0}
+    cell: 13, // current position
+    direction: 0, // difference between next and current cell
+    quedDirection: 0,
+    position: {
+        x: 13 % (gridColumns - 1) * cellWidth,
+        y: Math.floor(13 / (gridColumns-1)) * cellHeight,
+        }, // use as where to draw in pixels
+    // direction: {x: 0, y: 0}
 }
 const ghost = {
     cell: 10,
     position: {x: 0, y: 0},
-    direction: {x: 0, y: 0}
+    // direction: {x: 0, y: 0}
 }
 
 formatLevel()
@@ -71,7 +76,7 @@ drawWalls()
 drawPlayer()
 drawGhost()
 
-setInterval(() => {
+const gameLoop = setInterval(() => {
     drawFrame()
 }, 16)
 // setInterval(() => {
@@ -80,21 +85,21 @@ setInterval(() => {
 
 function drawFrame() {
     ctx.clearRect(0, 0, 300, 250)
-    drawGrid()
+    //drawGrid()
     drawWalls()
-    //drawCoins()
+    drawCoins()
     drawPlayer()
     drawGhost()
     ctx.font = "12px Comic Sans MS";
     ctx.fillStyle = "orange"
-    for (let i = 0; i < distanceGrid.length; i++) {
-        const dist = i
-        distanceGrid[i].forEach(cell => {
-            const x = cell % (gridColumns-1)
-            const y = Math.floor(cell / (gridColumns-1))
-            ctx.fillText(`${i}`, x * 25 + 25, y * 25 + 25)
-        })
-    }
+    // for (let i = 0; i < distanceGrid.length; i++) {
+    //     const dist = i
+    //     distanceGrid[i].forEach(cell => {
+    //         const x = cell % (gridColumns-1)
+    //         const y = Math.floor(cell / (gridColumns-1))
+    //         ctx.fillText(`${i}`, x * 25 + 25, y * 25 + 25)
+    //     })
+    // }
 }
 
 // ghost movement will be made with a recurent funciton:
@@ -105,31 +110,175 @@ function drawFrame() {
 // }, 500)
 
 
-function updatePlayer(e) {
-    console.log(e.key)
-    console.log(player.cell)
-
-    switch (e.key) {
-        case "ArrowLeft":
-            player.cell += -1
+ function updatePlayer(e) {
+    const input = e.key || e
+     switch (input) {
+         case "ArrowLeft":
+            if (player.direction && player.direction !== 0) return player.quedDirection = -1
+            player.direction = -1
+            if (isMoveLegal(player.cell, player.direction)) {
+                moveSmoothly(player.direction)
+            } else {
+                player.direction = 0
+            }
         break
         case "ArrowRight":
-            player.cell += 1
-        break
+            if (player.direction && player.direction !== 0) return player.quedDirection = 1
+            player.direction = 1
+            if (isMoveLegal(player.cell, player.direction)) {
+                 moveSmoothly(player.direction)
+            } else {
+                player.direction = 0
+            }
+        break   
         case "ArrowUp":
-            player.cell += -11
+            if (player.direction && player.direction !== 0) return player.quedDirection = -11
+            player.direction = -11
+            if (isMoveLegal(player.cell, player.direction)) {
+                 moveSmoothly(player.direction)
+            } else {
+                player.direction = 0
+            }
         break
         case "ArrowDown":
-            player.cell += 11
+            if (player.direction && player.direction !== 0) return  player.quedDirection = 11
+            player.direction = 11
+            if (isMoveLegal(player.cell, player.direction)) {
+                 moveSmoothly(player.direction)//.then(() => player.cell += player.direction)
+            } else {
+                player.direction = 0
+            }
+        break
+    }   
+    
+    createPathFinding()
+    
+    function isMoveLegal(curr, direction) {
+        //console.log(levelFormatted[curr]?.indexOf(curr + direction) !== -1)
+        return levelFormatted[curr]?.indexOf(curr + direction) !== -1
+    }
+    function moveSmoothly(direction, frame = 0) {
+        //console.log(direction, frame)
+        // those numbers are hardcoded for a 6x5 level:
+        const moveX = direction === 1 || direction === -1 ? direction : 0
+        const moveY = direction === 11 || direction ===  -11 ? direction / 11 : 0
+        console.log(moveX, moveY)
+        player.position.x += moveX
+        player.position.y += moveY
+        frame += 1
+        if (frame > 25) { // clean it up later
+            player.cell += player.direction
+            createPathFinding()
+            player.position.x = player.cell % (gridColumns - 1) * cellWidth
+            player.position.y = Math.floor(player.cell / (gridColumns - 1)) * cellHeight
+            if (player.quedDirection !== 0 && isMoveLegal(player.cell, player.quedDirection)) {
+                player.direction = player.quedDirection
+                player.quedDirection = 0
+                moveSmoothly(player.direction)
+            } else if (isMoveLegal(player.cell, player.direction)) {
+                 moveSmoothly(player.direction)
+            } else {
+                player.direction = 0
+            }
+        } else {
+            setTimeout(() => moveSmoothly(direction, frame), 1)
+        }
+
+        // player.isMoving = true
+        // return new Promise(resolve => {
+        //     let i = 0
+        //     const c = setInterval(() => {
+        //         i += 1
+        //         if (i > 25) {
+        //             clearInterval(c)
+        //             resolve()
+        //         }
+        //         }, 16)
+        //     }
+        // )
+        
+        // // if (frame >= 25) {
+        // //     return new Promise(r => r())
+        // // }
+        // // return setTimeout(() => animatePlayer(nextFrame), 16)
+    }
+}
+function handleKeyUp(e) {
+    switch (e.key) {
+        case "ArrowUp":
+            if (player.quedDirection === -11) setTimeout(() => player.quedDirection = 0, 350)
+        break
+        case "ArrowDown":
+            if (player.quedDirection === 11) setTimeout(() => player.quedDirection = 0, 350)
+        break
+        case "ArrowRight":
+            if (player.quedDirection === 1) setTimeout(() => player.quedDirection = 0, 350)
+        break
+        case "ArrowLeft":
+            if (player.quedDirection === -1) setTimeout(() => player.quedDirection = 0, 350)
         break
     }
-    createPathFinding()
-    //drawFrame()
 }
+// function updatePlayer(e) {
+//     // console.log(e.key)
+//     // console.log(player.cell)
+
+//     let direction = e
+
+//     if (e.key) {
+//         switch (e.key) {
+//             case "ArrowLeft":
+//                 direction = -1
+//                 animatePlayer(player.cell + direction, player.cell, 0)
+//                 player.cell += direction
+//             break
+//             case "ArrowRight":
+//                 direction = 1
+//                 animatePlayer(player.cell + direction, player.cell, 0)
+//                 player.cell += direction
+//             break
+//             case "ArrowUp":
+//                 direction = -11
+//                 animatePlayer(player.cell + direction, player.cell, 0)
+//                 player.cell += direction
+//             break
+//             case "ArrowDown":
+//                 direction = 11
+//                 animatePlayer(player.cell + direction, player.cell, 0)
+//                 player.cell += direction
+//             break
+//         }   
+//     } else {
+//         animatePlayer(player.cell + direction, player.cell, 0)
+//     }
+
+
+//     function animatePlayer(nextMove, cell, animFrame = 0) {
+//         console.log(animFrame)
+//         if (direction === -1) {
+//             player.position.x -= 1
+//         } else if (direction === 1) {
+//             player.position.x += 1
+//         }  else if (direction === -11) {
+//             player.position.y -= 1
+//         }  else if (direction === 11) {
+//             player.position.y += 1
+//         }
+//         if (animFrame >= 25) {
+//             return updatePlayer(direction)
+//         }
+//         setTimeout(() => animatePlayer(nextMove, cell, ++animFrame), 8)
+//     }
+
+//     createPathFinding()
+//     //drawFrame()
+// }
 document.addEventListener("keydown", updatePlayer)
+document.addEventListener("keyup", handleKeyUp)
+
 
 function updateGhost() {
-    console.log("ghost update")
+    // console.log("ghost update")
     const cell = ghost.cell
 
     let dist = 0
@@ -139,12 +288,15 @@ function updateGhost() {
             break
         }
     }
+    // if (dist <= 1) {
+    //     alert("gameOver")
+    // }
     if (dist === 0) return
-
     const possibleMoves = distanceGrid[dist - 1].filter(nextCell => {
         let result = false
         // those numbers are hardcoded for a 6x5 level:
         // note: this causes a strange behaviour when a ghost can rarely teleport through a side wall
+        // note1: it looks pretty cool
         if (nextCell - cell === 1  || 
             nextCell - cell === -1 ||
             nextCell - cell === 11 ||
@@ -156,7 +308,7 @@ function updateGhost() {
     })
     const nextMove = possibleMoves[Math.floor(Math.random() * possibleMoves.length)]
     const direction = nextMove - cell
-    console.log(direction)
+    // console.log(direction)
 
     // console.log(possibleMoves)
     // console.log(nextMove)
@@ -172,7 +324,8 @@ function updateGhost() {
 
     animateGhost(cell, nextMove, 0)
     function animateGhost(nextMove, cell, animFrame = 0) {
-        console.log(animFrame)
+        // console.log(animFrame)
+        // those numbers are hardcoded for a 6x5 level:
         if (direction === -1) {
             ghost.position.x -= 1
         } else if (direction === 1) {
@@ -185,7 +338,8 @@ function updateGhost() {
         if (animFrame >= 25) {
             return updateGhost()
         }
-        setTimeout(() => animateGhost(nextMove, cell, ++animFrame), 8)
+        setTimeout(() => animateGhost(nextMove, cell, ++animFrame), 16)
+        // setTimeout(() => animateGhost(nextMove, cell, ++animFrame), 8)
     }
 }
 updateGhost()
@@ -212,7 +366,7 @@ function createPathFinding() {
     let temp = []
     while (cellsUsed.length < cellsAvaiable.length) {
         sortedByDistance[sortedByDistance.length - 1].forEach(cell => {
-            passagesObj[cell].forEach(openTo => {
+            passagesObj[cell]?.forEach(openTo => {
                 if (cellsUsed.indexOf(openTo) !== -1) return
                 temp.push(openTo)
                 cellsUsed.push(openTo)
@@ -223,30 +377,33 @@ function createPathFinding() {
         temp = []
     }
 
-    console.log(sortedByDistance)
-    ctx.font = "12px Comic Sans MS";
-    ctx.fillStyle = "orange"
-    for (let i = 0; i < sortedByDistance.length; i++) {
-        const dist = i
-        sortedByDistance[i].forEach(cell => {
-            const x = cell % (gridColumns-1)
-            const y = Math.floor(cell / (gridColumns-1))
-            ctx.fillText(`${i}`, x * 25 + 25, y * 25 + 25)
-        })
-    }
+    // console.log(sortedByDistance)
+    // ctx.font = "12px Comic Sans MS"
+    // ctx.fillStyle = "orange"
+    // for (let i = 0; i < sortedByDistance.length; i++) {
+    //     const dist = i
+    //     sortedByDistance[i].forEach(cell => {
+    //         const x = cell % (gridColumns-1)
+    //         const y = Math.floor(cell / (gridColumns-1))
+    //         ctx.fillText(`${i}`, x * 25 + 25, y * 25 + 25)
+    //     })
+    // }
 }
 
 function drawPlayer() {
-   const x = player.cell % (gridColumns-1)
-   const y = Math.floor(player.cell / (gridColumns-1))
+    const x = player.position.x
+    const y = player.position.y
+
+    // const x = player.cell % (gridColumns-1)
+    // const y = Math.floor(player.cell / (gridColumns-1))
 
     ctx.beginPath()
-    ctx.arc(x * cellWidth + 25, y * cellHeight + 25, 12, 0, Math.PI * 2)
+    ctx.arc(x + 25, y  + 25, 12, 0, Math.PI * 2)
     ctx.fillStyle = "yellow"
     ctx.fill()
 
     ctx.strokeStyle = "black"
-    ctx.strokeText("^  ^", x * cellWidth + 18, y * cellHeight + 32,14);
+    ctx.strokeText("^  ^", x + 18, y + 32,14);
 }
 function drawGhost() {
     // const x = ghost.cell % (gridColumns-1) * cellWidth
@@ -261,6 +418,7 @@ function drawGhost() {
     ctx.rect(x + 14, y + 10, 23, 23)
     ctx.fill()
 
+    ctx.font = "12px Comic Sans MS"
     ctx.strokeStyle = "white"
     ctx.strokeText("-_-", x + 17, y + 25, 20);
 }
