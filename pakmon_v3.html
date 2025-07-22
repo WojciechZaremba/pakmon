@@ -49,6 +49,7 @@ const cellHeight = canvasHeight / gridRows
 const level = [[6,1],[0,7,2],[1,3],[2,9],[10,5],[4],[0,12],[1,8,13],[9,7],[3,8,10],[11,9,4],[17,10],[18,6],[7,14],[13,20,15],[21,14],[17,22],[16,11,23],[19,12,24],[20,18],[14,19],[27,15,22],[21,16],[17,29],[18,25],[24,26],[25,27],[26,21,28],[27],[23]]
 const levelFormatted = {} // added a cell between every cell from a "level"
 const coinsGrid = [] // contains numbers of cells with a coin in them
+let coinCounter = 0
 let distanceGrid = [] // cells grouped and sorted by a distance
 const player = {
     cell: 13, // current position
@@ -69,6 +70,7 @@ const ghost = {
 formatLevel()
 createCoinsGrid()
 createPathFinding()
+updateCoins()
 
 drawGrid()
 drawWalls()
@@ -99,8 +101,22 @@ function drawFrame() {
     // }
 }
 
+function updateCoins() {
+    const playerCell = player.cell
+    const coins = coinsGrid
 
- function updatePlayer(e) {
+    console.log(playerCell)
+    
+    let idx = coins.indexOf(playerCell)
+
+    if (coins.indexOf(playerCell) !== -1) {
+        coins[idx] = undefined
+        coinCounter -= 1
+    }
+    if (coinCounter === 0) alert("you win")
+}
+
+function updatePlayer(e) {
     const input = e.key || e
      switch (input) {
          case "ArrowLeft":
@@ -147,15 +163,17 @@ function drawFrame() {
         return levelFormatted[curr]?.indexOf(curr + direction) !== -1
     }
     function moveSmoothly(direction, frame = 0) {
+        const speedMultiplier = 1
         // those numbers are hardcoded for a 6x5 level:
         const moveX = direction === 1 || direction === -1 ? direction : 0
         const moveY = direction === 11 || direction ===  -11 ? direction / 11 : 0
         console.log(moveX, moveY)
-        player.position.x += moveX
-        player.position.y += moveY
+        player.position.x += moveX * speedMultiplier
+        player.position.y += moveY * speedMultiplier
         frame += 1
-        if (frame > 25) { // clean it up later
+        if (frame > 25/speedMultiplier) { // clean it up later
             player.cell += player.direction
+            updateCoins()
             createPathFinding()
             player.position.x = player.cell % (gridColumns - 1) * cellWidth
             player.position.y = Math.floor(player.cell / (gridColumns - 1)) * cellHeight
@@ -164,7 +182,7 @@ function drawFrame() {
                 player.quedDirection = 0
                 moveSmoothly(player.direction)
             } else if (isMoveLegal(player.cell, player.direction)) {
-                 moveSmoothly(player.direction)
+                moveSmoothly(player.direction)
             } else {
                 player.direction = 0
             }
@@ -208,6 +226,7 @@ function updateGhost() {
     // if (dist <= 1) {
     //     alert("gameOver")
     // }
+    if (dist < 2) alert("you loose")
     if (dist === 0) return
     const possibleMoves = distanceGrid[dist - 1].filter(nextCell => {
         let result = false
@@ -369,6 +388,7 @@ function drawWalls() {
 function createCoinsGrid() {
     const cellsAvaiable = Object.keys(levelFormatted)
     cellsAvaiable.forEach(cell => coinsGrid.push(Number(cell)))
+    coinCounter = coinsGrid.length
 }
 
 function drawCoins() {
