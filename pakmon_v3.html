@@ -39,48 +39,138 @@ my_canvas.height = canvasHeight
 
 const rowsNum = 5
 const columnsNum = 6
-const gridRows = rowsNum * 2
-const gridColumns = columnsNum * 2
+let gridRows = rowsNum * 2
+let gridColumns = columnsNum * 2
 
-const cellWidth = canvasWidth / gridColumns
-const cellHeight = canvasHeight / gridRows
+let cellWidth = canvasWidth / gridColumns
+let cellHeight = canvasHeight / gridRows
+
+const levels = { // arr idx works as a cell number, arr contains open passages
+    columns: 6,
+    rows: 5,
+    1: [[6,1],[0,7,2],[1,3],[2,9],[10,5],[4],[0,12],[1,8,13],[9,7],[3,8,10],[11,9,4],[17,10],[18,6],[7,14],[13,20,15],[21,14],[17,22],[16,11,23],[19,12,24],[20,18],[14,19],[27,15,22],[21,16],[17,29],[18,25],[24,26],[25,27],[26,21,28],[27],[23]],
+    2: [[6,1],[0,2],[1,3],[2,9,4],[3,5],[4,11],[0,12],[8,13],[9,7,14],[3,8,10,15],[9,16],[5,17],[13,6,18],[7,12,19],[20,8],[9],[17,10,22],[11,16,23],[12,24],[20,13],[21,19,14],[27,20,22],[16,21],[17,29],[18,25],[24,26],[25,27],[26,21,28],[29,27],[23,28]],
+    3: [[6],[2,7],[3,1],[2,4],[5,3],[11,4],[0,12],[1,13],[9,14],[10,8],[16,9],[17,5],[6,18],[7,19],[8,15],[14,16],[22,10,15],[23,11],[12,24],[13,20],[19,21],[20,22],[21,16],[29,17],[18,25],[24,26],[25,27],[28,26],[27,29],[28,23]], 
+    4: [[1,6],[0,2,7],[8,1],[9,4],[5,3],[4,11],[0],[13,1],[2,9],[8,3],[16],[5,17],[13,18],[14,7,19,12],[13,20],[16],[15,10,22,17],[11,16],[24,12],[13],[21,26,14],[27,20],[16],[29],[18,25],[24,26],[20,25],[21,28],[29,27],[23,28]], 
+    5: [[1,6],[2,0],[3,1],[9,2],[10,5],[4],[0,7],[6,13],[14,9],[10,3,8],[11,4,9],[17,10],[13,18],[7,12],[8,15],[14,21],[22,17],[16,11],[12,19,24],[18,20],[19,21,26],[20,15],[23,16],[22,29],[18,25],[24],[27,20],[28,26],[29,27],[23,28]], 
+    6: [[1,6],[2,0],[8,3,1],[2,4],[3,10,5],[4],[0,12],[],[14,2],[],[16,4],[17],[6,13,18],[14,12,19],[15,8,13],[16,14,21],[15,10,17],[16,11,23],[12,24],[13,25],[],[27,15],[],[17,29],[18],[19,26],[25,27],[28,21,26],[29,27],[23,28]], 
+}
 
 // const level = [[6],[2,7],[3,1],[2,4],[5,3],[11,4],[0,12],[1,13],[9,14],[10,8],[16,9],[17,5],[6,18],[7,19],[8,15],[14,16],[22,10,15],[23,11],[12,24],[13,20],[19,21],[20,22],[21,16],[29,17],[18,25],[24,26],[25,27],[28,26],[27,29],[28,23]]
-const level = [[6,1],[0,7,2],[1,3],[2,9],[10,5],[4],[0,12],[1,8,13],[9,7],[3,8,10],[11,9,4],[17,10],[18,6],[7,14],[13,20,15],[21,14],[17,22],[16,11,23],[19,12,24],[20,18],[14,19],[27,15,22],[21,16],[17,29],[18,25],[24,26],[25,27],[26,21,28],[27],[23]]
-const levelFormatted = {} // added a cell between every cell from a "level"
-const coinsGrid = [] // contains numbers of cells with a coin in them
+let level = levels[Number(sessionStorage.getItem("lvl"))]
+// let level = [[6,1],[0,7,2],[1,3],[2,9],[10,5],[4],[0,12],[1,8,13],[9,7],[3,8,10],[11,9,4],[17,10],[18,6],[7,14],[13,20,15],[21,14],[17,22],[16,11,23],[19,12,24],[20,18],[14,19],[27,15,22],[21,16],[17,29],[18,25],[24,26],[25,27],[26,21,28],[27],[23]]
+let levelFormatted = {} // added a cell between every cell from a "level"
+let coinsGrid = [] // contains numbers of cells with a coin in them
 let coinCounter = 0
 let distanceGrid = [] // cells grouped and sorted by a distance
+
+let playerStartingCell = 0
+let ghostStartingCell = 10
+
 const player = {
-    cell: 13, // current position
+    cell: playerStartingCell, // current position
     direction: 0, // difference between next and current cell
     quedDirection: 0,
+    // position: {
+    //     x: playerStartingCell % (gridColumns - 1) * cellWidth,
+    //     y: Math.floor(playerStartingCell / (gridColumns-1)) * cellHeight,
+    //     }, // use as where to draw in pixels
     position: {
-        x: 13 % (gridColumns - 1) * cellWidth,
-        y: Math.floor(13 / (gridColumns-1)) * cellHeight,
+        x: 0,
+        y: 0,
         }, // use as where to draw in pixels
     // direction: {x: 0, y: 0}
 }
 const ghost = {
-    cell: 10,
+    cell: ghostStartingCell,
     position: {x: 0, y: 0},
     // direction: {x: 0, y: 0}
+    speed: .5,
+}
+const gameState = {
+    level: Number(sessionStorage.getItem("lvl")),
+    pause: false,
+    imposibleCoins: 0,
 }
 
+loadPreset(gameState.level)
 formatLevel()
 createCoinsGrid()
 createPathFinding()
 updateCoins()
+updatePlayer()
+updateGhost()
 
 drawGrid()
 drawWalls()
 //drawCoins()
-drawPlayer()
+//drawPlayer()
 drawGhost()
+
+// remove this later
+//setTimeout(() => gameState.pause = true, 1)
 
 const gameLoop = setInterval(() => {
     drawFrame()
 }, 16)
+
+function startLevel(num) {
+    console.log(num)
+    sessionStorage.setItem("lvl", num)
+    window.location.reload()
+    // levelFormatted = {} 
+    // coinsGrid = []
+    // coinCounter = 0
+    // distanceGrid = []
+    // level = levels[num]
+    // loadPreset(num)
+    // formatLevel()
+    // createCoinsGrid()
+    // createPathFinding()
+    // updateGhost()
+    // updatePlayer()
+    // updateCoins()
+}
+
+function loadPreset(level) {
+    console.log(level)
+    switch (level) {
+        case 1:
+            player.cell = 0
+            ghost.cell = 10
+        break
+        case 2:
+            player.cell = 0
+            ghost.cell = 50
+        break
+        case 3:
+            player.cell = 22
+            player.position = {
+                x: player.cell % (gridColumns - 1) * cellWidth,
+                y: Math.floor(player.cell / (gridColumns-1)) * cellHeight,}
+            player.direction = 11 // move down
+            ghost.cell = 0
+            ghost.position = {
+                x: ghost.cell % (gridColumns - 1) * cellWidth,
+                y: Math.floor(ghost.cell / (gridColumns-1)) * cellHeight,}
+            ghost.speed = 1
+        break
+        case 4:
+            player.cell = 98
+            ghost.cell = 50
+            ghost.speed = .7
+        break
+        case 5:
+            player.cell = 0
+            ghost.cell = 10
+        break
+        case 6:
+            player.cell = 0
+            ghost.cell = 10
+            gameState.imposibleCoins = 4
+        break
+    }
+}
 
 function drawFrame() {
     ctx.clearRect(0, 0, 300, 250)
@@ -102,21 +192,26 @@ function drawFrame() {
 }
 
 function updateCoins() {
+    if (gameState.pause) return
     const playerCell = player.cell
     const coins = coinsGrid
 
-    console.log(playerCell)
-    
     let idx = coins.indexOf(playerCell)
 
     if (coins.indexOf(playerCell) !== -1) {
         coins[idx] = undefined
         coinCounter -= 1
     }
-    if (coinCounter === 0) alert("you win")
+    // if (coinCounter === 0) alert("you win")
+    if (coinCounter === 0) {
+        const level = gameState.level + 1
+        if (level > 6) return startLevel(1)
+        startLevel(gameState.level + 1)
+    }
 }
 
-function updatePlayer(e) {
+function updatePlayer(e = "default") {
+    if (gameState.pause) return
     const input = e.key || e
      switch (input) {
          case "ArrowLeft":
@@ -155,6 +250,13 @@ function updatePlayer(e) {
                 player.direction = 0
             }
         break
+        case "default":
+            if (isMoveLegal(player.cell, player.direction)) {
+                 moveSmoothly(player.direction)
+            } else {
+                player.direction = 0
+            }
+        break
     }   
     
     createPathFinding()
@@ -163,11 +265,12 @@ function updatePlayer(e) {
         return levelFormatted[curr]?.indexOf(curr + direction) !== -1
     }
     function moveSmoothly(direction, frame = 0) {
+        if (gameState.pause) return
         const speedMultiplier = 1
         // those numbers are hardcoded for a 6x5 level:
         const moveX = direction === 1 || direction === -1 ? direction : 0
         const moveY = direction === 11 || direction ===  -11 ? direction / 11 : 0
-        console.log(moveX, moveY)
+        //console.log(moveX, moveY)
         player.position.x += moveX * speedMultiplier
         player.position.y += moveY * speedMultiplier
         frame += 1
@@ -213,6 +316,7 @@ document.addEventListener("keyup", handleKeyUp)
 
 
 function updateGhost() {
+    if (gameState.pause) return
     // console.log("ghost update")
     const cell = ghost.cell
 
@@ -226,8 +330,14 @@ function updateGhost() {
     // if (dist <= 1) {
     //     alert("gameOver")
     // }
-    if (dist < 2) alert("you loose")
-    if (dist === 0) return
+    
+    // if (dist < 2) alert("you loose")
+    if (dist < 2) {
+        alert ("you loose")
+        startLevel(1)
+        return
+    }
+
     const possibleMoves = distanceGrid[dist - 1].filter(nextCell => {
         let result = false
         // those numbers are hardcoded for a 6x5 level:
@@ -251,24 +361,25 @@ function updateGhost() {
 
     animateGhost(cell, nextMove, 0)
     function animateGhost(nextMove, cell, animFrame = 0) {
+        const speedMultiplier = ghost.speed
+        if (gameState.pause) return
         // those numbers are hardcoded for a 6x5 level:
         if (direction === -1) {
-            ghost.position.x -= 1
+            ghost.position.x -= 1 * speedMultiplier
         } else if (direction === 1) {
-            ghost.position.x += 1
+            ghost.position.x += 1 * speedMultiplier
         }  else if (direction === -11) {
-            ghost.position.y -= 1
+            ghost.position.y -= 1 * speedMultiplier
         }  else if (direction === 11) {
-            ghost.position.y += 1
+            ghost.position.y += 1 * speedMultiplier
         }
-        if (animFrame >= 25) {
+        if (animFrame >= 25 / speedMultiplier) {
             return updateGhost()
         }
-        setTimeout(() => animateGhost(nextMove, cell, ++animFrame), 16)
+        setTimeout(() => animateGhost(nextMove, cell, ++animFrame), 1)
         // setTimeout(() => animateGhost(nextMove, cell, ++animFrame), 8)
     }
 }
-updateGhost()
 
 
 function createPathFinding() {
@@ -316,6 +427,7 @@ function drawPlayer() {
     ctx.strokeStyle = "black"
     ctx.strokeText("^  ^", x + 18, y + 32,14);
 }
+
 function drawGhost() {
     const x = ghost.position.x
     const y = ghost.position.y
@@ -389,6 +501,7 @@ function createCoinsGrid() {
     const cellsAvaiable = Object.keys(levelFormatted)
     cellsAvaiable.forEach(cell => coinsGrid.push(Number(cell)))
     coinCounter = coinsGrid.length
+    coinCounter -= gameState.imposibleCoins
 }
 
 function drawCoins() {
