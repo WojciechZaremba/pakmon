@@ -86,6 +86,14 @@ const ghost = {
     position: {x: 0, y: 0},
     // direction: {x: 0, y: 0}
     speed: .5,
+    remove: false,
+}
+const ghostOrange = {
+    cell: 6,
+    position: {x: 0, y: 0},
+    speed: .5,
+    path: [],
+    remove: true
 }
 const gameState = {
     level: Number(sessionStorage.getItem("lvl")),
@@ -106,6 +114,10 @@ drawWalls()
 //drawCoins()
 //drawPlayer()
 drawGhost()
+if (ghostOrange.remove === false) {
+    updateOrangeGhost()
+    drawOrangeGhost()
+} 
 
 // remove this later
 //setTimeout(() => gameState.pause = true, 1)
@@ -168,6 +180,7 @@ function loadPreset(level) {
             player.cell = 0
             ghost.cell = 10
             gameState.imposibleCoins = 4
+            ghostOrange.remove = false
         break
     }
 }
@@ -179,16 +192,31 @@ function drawFrame() {
     drawCoins()
     drawPlayer()
     drawGhost()
+    if (ghostOrange.remove === false) {
+        drawOrangeGhost()
+    } 
+    // debugPathfinding("orange")
+}
+
+function debugPathfinding(ghostColor) {
+    let pathToDraw
+    if (ghostColor === undefined) {
+        pathToDraw = distanceGrid
+    } else if (ghostColor === "orange") {
+        pathToDraw = ghostOrange.path
+    }
+
+
     ctx.font = "12px Comic Sans MS";
     ctx.fillStyle = "orange"
-    // for (let i = 0; i < distanceGrid.length; i++) {
-    //     const dist = i
-    //     distanceGrid[i].forEach(cell => {
-    //         const x = cell % (gridColumns-1)
-    //         const y = Math.floor(cell / (gridColumns-1))
-    //         ctx.fillText(`${i}`, x * 25 + 25, y * 25 + 25)
-    //     })
-    // }
+    for (let i = 0; i < pathToDraw.length; i++) {
+        const dist = i
+        pathToDraw[i].forEach(cell => {
+            const x = cell % (gridColumns-1)
+            const y = Math.floor(cell / (gridColumns-1))
+            ctx.fillText(`${i}`, x * 25 + 25, y * 25 + 25)
+        })
+    }
 }
 
 function updateCoins() {
@@ -305,7 +333,7 @@ function handleKeyUp(e) {
         case "ArrowRight":
             if (player.quedDirection === 1) setTimeout(() => player.quedDirection = 0, 350)
         break
-        case "ArrowLeft":
+        case "ArrowLeft": 
             if (player.quedDirection === -1) setTimeout(() => player.quedDirection = 0, 350)
         break
     }
@@ -314,31 +342,105 @@ function handleKeyUp(e) {
 document.addEventListener("keydown", updatePlayer)
 document.addEventListener("keyup", handleKeyUp)
 
+//TO DO: one func for updating every ghost
+function updateOrangeGhost() {
+    if (gameState.pause) return
+    const cell = ghostOrange.cell
+
+    let distToPlayer = 0
+    for (let i = 0; i < distanceGrid.length; i++) {
+        if (distanceGrid[i].indexOf(cell) !== -1) {
+            distToPlayer = i
+            break
+        }
+    }
+    let distToDestination = 0
+    for (let i = 0; i < ghostOrange.path.length; i++) {
+        if (ghostOrange.path[i].indexOf(cell) !== -1) {
+            distToDestination = i
+            break
+        }
+    }
+
+    if (distToPlayer < 2) {
+        alert ("you loose by pink ghost")
+        startLevel(1)
+        return
+    }
+    if (distToDestination <= 1) {
+        createPathFinding("orange")
+        updateOrangeGhost()
+        return
+    }
+
+    const possibleMoves = ghostOrange.path[distToDestination - 1].filter(nextCell => {
+        let result = false
+        // those numbers are hardcoded for a 6x5 level:
+        // note: this causes a strange behaviour when a ghost can rarely teleport through a side wall
+        // note1: it looks pretty cool
+        if (nextCell - cell === 1  || 
+            nextCell - cell === -1 ||
+            nextCell - cell === 11 ||
+            nextCell - cell === -11
+        ) {
+            result = true
+        }
+        return result
+    })
+    const nextMove = possibleMoves[Math.floor(Math.random() * possibleMoves.length)]
+    const direction = nextMove - cell
+
+    ghostOrange.position.x = ghostOrange.cell % (gridColumns-1) * cellWidth
+    ghostOrange.position.y = Math.floor(ghostOrange.cell / (gridColumns-1)) * cellHeight
+    ghostOrange.cell = nextMove
+
+    animateGhost(cell, nextMove, 0)
+    function animateGhost(nextMove, cell, animFrame = 0) {
+        const speedMultiplier = ghostOrange.speed
+        if (gameState.pause) return
+        // those numbers are hardcoded for a 6x5 level:
+        if (direction === -1) {
+            ghostOrange.position.x -= 1 * speedMultiplier
+        } else if (direction === 1) {
+            ghostOrange.position.x += 1 * speedMultiplier
+        } else if (direction === -11) {
+            ghostOrange.position.y -= 1 * speedMultiplier
+        } else if (direction === 11) {
+            ghostOrange.position.y += 1 * speedMultiplier
+        }
+        if (animFrame >= 25 / speedMultiplier) {
+            return updateOrangeGhost()
+        }
+        setTimeout(() => animateGhost(nextMove, cell, ++animFrame), 1)
+        // setTimeout(() => animateGhost(nextMove, cell, ++animFrame), 8)
+    }
+}
+createPathFinding("orange")
 
 function updateGhost() {
     if (gameState.pause) return
     // console.log("ghost update")
     const cell = ghost.cell
 
-    let dist = 0
+    let distToPlayer = 0
     for (let i = 0; i < distanceGrid.length; i++) {
         if (distanceGrid[i].indexOf(cell) !== -1) {
-            dist = i
+            distToPlayer = i
             break
         }
     }
-    // if (dist <= 1) {
+    // if (distToPlayer <= 1) {
     //     alert("gameOver")
     // }
     
-    // if (dist < 2) alert("you loose")
-    if (dist < 2) {
+    // if (distToPlayer < 2) alert("you loose")
+    if (distToPlayer < 2) {
         alert ("you loose")
         startLevel(1)
         return
     }
 
-    const possibleMoves = distanceGrid[dist - 1].filter(nextCell => {
+    const possibleMoves = distanceGrid[distToPlayer - 1].filter(nextCell => {
         let result = false
         // those numbers are hardcoded for a 6x5 level:
         // note: this causes a strange behaviour when a ghost can rarely teleport through a side wall
@@ -368,9 +470,9 @@ function updateGhost() {
             ghost.position.x -= 1 * speedMultiplier
         } else if (direction === 1) {
             ghost.position.x += 1 * speedMultiplier
-        }  else if (direction === -11) {
+        } else if (direction === -11) {
             ghost.position.y -= 1 * speedMultiplier
-        }  else if (direction === 11) {
+        } else if (direction === 11) {
             ghost.position.y += 1 * speedMultiplier
         }
         if (animFrame >= 25 / speedMultiplier) {
@@ -381,21 +483,32 @@ function updateGhost() {
     }
 }
 
-
-function createPathFinding() {
-    distanceGrid = []
-
-    const x = player.cell % gridColumns
-    const y = Math.floor(player.cell / gridColumns)
+// TO DO: clean it up
+function createPathFinding(ghostColor) {
+    if (ghostColor === undefined) {
+        distanceGrid = []
+    } else if (ghostColor === "orange") {
+        ghostOrange.path = []
+    }
 
     const passagesObj = levelFormatted
     const cellsAvaiable = Object.keys(levelFormatted)
 
-    // reminder: operations on sortedByDistance change distanceGrid too
-    const sortedByDistance = distanceGrid  
+    let sortedByDistance = []  
+    // reminder: operations on sortedByDistance will change the distanceGrid too
+    if (ghostColor === undefined) {
+        sortedByDistance = distanceGrid 
+    } else if (ghostColor === "orange") {
+        sortedByDistance = ghostOrange.path
+    }
     const cellsUsed = []
 
-    const root = player.cell
+    let root
+    if (ghostColor === "orange") {
+        root = Number(cellsAvaiable[Math.floor(Math.random() * cellsAvaiable.length)])
+    } else if (ghostColor === undefined) {
+        root = player.cell
+    }
 
     sortedByDistance.push([root])
     cellsUsed.push(root)
@@ -426,6 +539,22 @@ function drawPlayer() {
 
     ctx.strokeStyle = "black"
     ctx.strokeText("^  ^", x + 18, y + 32,14);
+}
+
+//TO DO: one drawghost func for all ghosts
+function drawOrangeGhost() {
+    const x = ghostOrange.position.x
+    const y = ghostOrange.position.y
+
+    ctx.beginPath()
+    // ctx.arc(x * cellWidth + 25, y * cellHeight + 25, 13, 0, Math.PI * 2)
+    ctx.fillStyle = "pink"
+    ctx.rect(x + 14, y + 10, 23, 23)
+    ctx.fill()
+
+    ctx.font = "10px Comic Sans MS"
+    ctx.strokeStyle = "black"
+    ctx.strokeText("* -*", x + 17, y + 25, 20);
 }
 
 function drawGhost() {
@@ -511,6 +640,7 @@ function drawCoins() {
         const x = coin % 11 + 1
         const y = Math.floor(coin / 11) + 1
 
+        // draw coins' numbers:
         // ctx.font = "10px Comic Sans MS"
         // ctx.fillStyle = "purple"
         // ctx.fillText(`${coin}`, x * 25, y * 25)
