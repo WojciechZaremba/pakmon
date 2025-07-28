@@ -84,21 +84,26 @@ const player = {
 const ghost = {
     cell: ghostStartingCell,
     position: {x: 0, y: 0},
-    // direction: {x: 0, y: 0}
+    direction: 0,
     speed: .5,
     remove: false,
+    prevCell: undefined,
 }
 const ghostOrange = {
     cell: 6,
     position: {x: 0, y: 0},
     speed: .5,
     path: [],
-    remove: true
+    remove: true,
+    prevCell: undefined,
 }
 const gameState = {
     level: Number(sessionStorage.getItem("lvl")),
     pause: false,
     imposibleCoins: 0,
+    finished: sessionStorage.getItem("finished") === "true" ? true : false,
+    // useOrangeGhost: (ghostOrange.remove === false || sessionStorage.getItem("finished") === "true" && ghostOrange.removeImportant == false) ? true : false
+    // useOrangeGhost: ghostOrange.remove === false || sessionStorage.getItem("finished") === "true" && ghostOrange.removeImportant == false
 }
 
 loadPreset(gameState.level)
@@ -114,7 +119,7 @@ drawWalls()
 //drawCoins()
 //drawPlayer()
 drawGhost()
-if (ghostOrange.remove === false) {
+if (ghostOrange.remove === false || sessionStorage.getItem("finished") === "true" && ghostOrange.removeImportant != true) {
     updateOrangeGhost()
     drawOrangeGhost()
 } 
@@ -166,6 +171,7 @@ function loadPreset(level) {
                 x: ghost.cell % (gridColumns - 1) * cellWidth,
                 y: Math.floor(ghost.cell / (gridColumns-1)) * cellHeight,}
             ghost.speed = 1
+            ghostOrange.removeImportant = true
         break
         case 4:
             player.cell = 98
@@ -175,6 +181,7 @@ function loadPreset(level) {
         case 5:
             player.cell = 0
             ghost.cell = 10
+            ghostOrange.remove = false
         break
         case 6:
             player.cell = 0
@@ -185,6 +192,13 @@ function loadPreset(level) {
     }
 }
 
+// const testObj = {
+//     useOrange: ghostOrange.remove === false || sessionStorage.getItem("finished") === "true" && ghostOrange.removeImportant == false
+// }
+// gameState.useOrange = false
+// if (ghostOrange.remove === false || sessionStorage.getItem("finished") === "true" && ghostOrange.removeImportant == false) gameState.useOrange = true
+console.log(ghostOrange.remove === false || sessionStorage.getItem("finished") === "true" && ghostOrange.removeImportant == false)
+
 function drawFrame() {
     ctx.clearRect(0, 0, 300, 250)
     //drawGrid()
@@ -192,7 +206,11 @@ function drawFrame() {
     drawCoins()
     drawPlayer()
     drawGhost()
-    if (ghostOrange.remove === false) {
+    // if (ghostOrange.remove === false || sessionStorage.getItem("finished") === "true" && ghostOrange.removeImportant == false) {
+    // if (ghostOrange.remove === false || gameState.finished && ghostOrange.removeImportant == false) {
+
+    if (ghostOrange.remove === false || sessionStorage.getItem("finished") === "true" && ghostOrange.removeImportant != true) {
+        console.log("draw pink guy")
         drawOrangeGhost()
     } 
     // debugPathfinding("orange")
@@ -233,7 +251,11 @@ function updateCoins() {
     // if (coinCounter === 0) alert("you win")
     if (coinCounter === 0) {
         const level = gameState.level + 1
-        if (level > 6) return startLevel(1)
+        if (level > 6) {
+            sessionStorage.setItem("finished", true)
+            gameState.finished = sessionStorage.getItem("finished") === "true" ? true : false
+            return startLevel(1)
+        } 
         startLevel(gameState.level + 1)
     }
 }
@@ -336,6 +358,8 @@ function handleKeyUp(e) {
         case "ArrowLeft": 
             if (player.quedDirection === -1) setTimeout(() => player.quedDirection = 0, 350)
         break
+        case " ": 
+            gameState.pause = true
     }
 }
 
@@ -364,6 +388,7 @@ function updateOrangeGhost() {
 
     if (distToPlayer < 2) {
         alert ("you loose by pink ghost")
+        sessionStorage.setItem("finished", false)
         startLevel(1)
         return
     }
@@ -436,6 +461,7 @@ function updateGhost() {
     // if (distToPlayer < 2) alert("you loose")
     if (distToPlayer < 2) {
         alert ("you loose")
+        sessionStorage.setItem("finished", false)
         startLevel(1)
         return
     }
@@ -454,11 +480,29 @@ function updateGhost() {
         }
         return result
     })
-    const nextMove = possibleMoves[Math.floor(Math.random() * possibleMoves.length)]
+
+
+    // now ghost avoids going back, is it more fun?
+    const noPrevCell = levelFormatted[ghost.cell].filter(cell => cell != ghost.prevCell)
+    let nextMove = possibleMoves[Math.floor(Math.random() * possibleMoves.length)]
+    const wouldGoBack = noPrevCell.indexOf(nextMove) === -1
+    if (wouldGoBack) {
+        const moveForward = noPrevCell[Math.floor(Math.random() * noPrevCell.length)]
+        const lookedBack = Math.random() < .8 // ghost will sometimes look back if player follows him
+        // NOTE: lookedBack at 80% chance makes him feel smart
+        if (moveForward !== undefined && lookedBack == false) nextMove = moveForward
+    } 
+
+    console.log("wouldGoBack: ", wouldGoBack)
+    console.log(noPrevCell, possibleMoves, nextMove, levelFormatted[ghost.cell] )
     const direction = nextMove - cell
+    
+    // const nextMove = possibleMoves[Math.floor(Math.random() * possibleMoves.length)]
+    // const direction = nextMove - cell
 
     ghost.position.x = ghost.cell % (gridColumns-1) * cellWidth
     ghost.position.y = Math.floor(ghost.cell / (gridColumns-1)) * cellHeight
+    ghost.prevCell = cell
     ghost.cell = nextMove
 
     animateGhost(cell, nextMove, 0)
