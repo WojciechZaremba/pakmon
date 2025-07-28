@@ -378,13 +378,6 @@ function updateOrangeGhost() {
             break
         }
     }
-    let distToDestination = 0
-    for (let i = 0; i < ghostOrange.path.length; i++) {
-        if (ghostOrange.path[i].indexOf(cell) !== -1) {
-            distToDestination = i
-            break
-        }
-    }
 
     if (distToPlayer < 2) {
         alert ("you loose by pink ghost")
@@ -392,31 +385,17 @@ function updateOrangeGhost() {
         startLevel(1)
         return
     }
-    if (distToDestination <= 1) {
-        createPathFinding("orange")
-        updateOrangeGhost()
-        return
-    }
 
-    const possibleMoves = ghostOrange.path[distToDestination - 1].filter(nextCell => {
-        let result = false
-        // those numbers are hardcoded for a 6x5 level:
-        // note: this causes a strange behaviour when a ghost can rarely teleport through a side wall
-        // note1: it looks pretty cool
-        if (nextCell - cell === 1  || 
-            nextCell - cell === -1 ||
-            nextCell - cell === 11 ||
-            nextCell - cell === -11
-        ) {
-            result = true
-        }
-        return result
-    })
-    const nextMove = possibleMoves[Math.floor(Math.random() * possibleMoves.length)]
+    const noPrevCell = levelFormatted[ghostOrange.cell].filter(cell => cell != ghostOrange.prevCell)
+
+    let nextMove = noPrevCell[Math.floor(Math.random() * noPrevCell.length)]
+    if (nextMove === undefined) nextMove = levelFormatted[ghostOrange.cell][0] // if dead end, move back
     const direction = nextMove - cell
 
     ghostOrange.position.x = ghostOrange.cell % (gridColumns-1) * cellWidth
     ghostOrange.position.y = Math.floor(ghostOrange.cell / (gridColumns-1)) * cellHeight
+    
+    ghostOrange.prevCell = cell
     ghostOrange.cell = nextMove
 
     animateGhost(cell, nextMove, 0)
@@ -522,6 +501,8 @@ function updateGhost() {
         if (animFrame >= 25 / speedMultiplier) {
             return updateGhost()
         }
+        //TODO: think about this timeout
+        // thought: all ghosts could share ONE timeout AND one update function
         setTimeout(() => animateGhost(nextMove, cell, ++animFrame), 1)
         // setTimeout(() => animateGhost(nextMove, cell, ++animFrame), 8)
     }
