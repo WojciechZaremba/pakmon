@@ -14,19 +14,54 @@
         div {
             color: white;
         }
+        .livesIcon {
+            scale: .5;
+            margin-right: -15px;
+        }
+        .hud {
+            width: 275px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .livesContainer {
+            width: 97px;
+            display: flex;
+            align-items: center;
+        }
+        .livesIcon {
+            display: none;
+        }
+        .game {
+            width: fit-content;
+            margin: auto;
+            margin-top: 10%;
+            /* margin-top: 100px; */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            scale: 1.5;
+        }
     </style>
     
 </head>
 <body>
-    <canvas id="canvas" width="300" height="250"></canvas>
-    <div id="par1">Current direction:</div>
-    <div id="par2">Queued direction: </div>
-    <div id="par3">Player cell: </div>
-    <div id="par4">Target Cell: </div>
-    <div id="par5">Coins left: </div>
-    <div id="par6"></div>
+    <div class="game">
+        <canvas id="canvas" width="300" height="250"></canvas>
+        <br>
+        <div class="hud">
+            <div class="hudElem" id="par5">Level: 1</div>
+            <div class="hudElem livesContainer" id="livesLeft">Lives:
+                <img class="livesIcon" src="./pakmonIcon.jpg" alt="pakmon icon">
+                <img class="livesIcon" src="./pakmonIcon.jpg" alt="pakmon icon">
+                <img class="livesIcon" src="./pakmonIcon.jpg" alt="pakmon icon">
+            </div>
+        </div>
+    </div>
 
 <script>
+
+const liveIcons = document.querySelectorAll(".livesIcon")
 
 const my_canvas = document.getElementById("canvas")
 const ctx = my_canvas.getContext("2d")
@@ -54,13 +89,15 @@ const levels = { // arr idx works as a cell number, arr contains open passages
     4: [[1,6],[0,2,7],[8,1],[9,4],[5,3],[4,11],[0],[13,1],[2,9],[8,3],[16],[5,17],[13,18],[14,7,19,12],[13,20],[16],[15,10,22,17],[11,16],[24,12],[13],[21,26,14],[27,20],[16],[29],[18,25],[24,26],[20,25],[21,28],[29,27],[23,28]], 
     5: [[1,6],[2,0],[3,1],[9,2],[10,5],[4],[0,7],[6,13],[14,9],[10,3,8],[11,4,9],[17,10],[13,18],[7,12],[8,15],[14,21],[22,17],[16,11],[12,19,24],[18,20],[19,21,26],[20,15],[23,16],[22,29],[18,25],[24],[27,20],[28,26],[29,27],[23,28]], 
     6: [[1,6],[2,0],[8,3,1],[2,4],[3,10,5],[4],[0,12],[],[14,2],[],[16,4],[17],[6,13,18],[14,12,19],[15,8,13],[16,14,21],[15,10,17],[16,11,23],[12,24],[13,25],[],[27,15],[],[17,29],[18],[19,26],[25,27],[28,21,26],[29,27],[23,28]], 
+    9: [[6,1],[0,2],[3,1,8],[2,4,9],[3,5],[4,11],[12,0],[],[2,14],[15,3],[],[17,5],[18,6,13],[12,14],[8,13,20],[9,16,21],[15,17],[16,11,23],[24,12],[20],[21,14,19,26],[20,15,22],[21],[17,29],[25,18],[24,26],[25,27,20],[28,26],[29,27],[23,28]],
+    10: [[6,1],[2,0],[3,1],[9,2],[10,5],[4],[0,7],[6,13,8],[14,9,7],[8,3,10],[9,4,11],[10,17],[13,18],[7,12],[15,8],[21,14],[17,22],[11,16],[12,24,19],[18,20],[19,21,26],[20,15,22],[16,23,21],[22,29],[18,25],[24,26],[27,20,25],[28,26],[29,27],[23,28]],
     // algorithm is too bad to use
     // 999: createRandomLevel(),
 }
 levels[7] = levels[1]
 levels[8] = levels[2]
-levels[9] = levels[5]
-levels[10] = levels[6]
+//levels[9] = levels[5]
+//levels[10] = levels[6]
 levels[11] = levels[1]
 
 function createRandomLevel(a) {
@@ -173,6 +210,7 @@ const player = {
         y: 0,
         }, // use as where to draw in pixels
     // direction: {x: 0, y: 0}
+    lives: sessionStorage.getItem("livesLeft") !== null ? Number(sessionStorage.getItem("livesLeft")) : 3
 }
 const ghost = {
     cell: ghostStartingCell,
@@ -205,6 +243,17 @@ const gameState = {
     // useOrangeGhost: ghostOrange.remove === false || sessionStorage.getItem("finished") === "true" && ghostOrange.removeImportant == false
 }
 
+if (level == undefined) {
+    level = levels[1]
+    gameState.level = 1
+    sessionStorage.setItem("lvl", 1)
+}
+
+par5.innerText = `Level: ${gameState.level}`
+for (let i = 0; i < player.lives; i++) { 
+    liveIcons[i].style.display = "block"
+}
+
 loadPreset(gameState.level)
 formatLevel()
 createCoinsGrid()
@@ -234,9 +283,10 @@ const gameLoop = setInterval(() => {
     drawFrame()
 }, 16)
 
-function startLevel(level) {
+function startLevel(level, livesLeft = 3) {
     console.log(level)
     sessionStorage.setItem("lvl", level)
+    sessionStorage.setItem("livesLeft", livesLeft)
     window.location.reload()
     // levelFormatted = {} 
     // coinsGrid = []
@@ -265,6 +315,8 @@ function loadPreset(level) {
         break
         case 3:
             player.cell = 22
+            player.position.x = player.cell % (gridColumns - 1) * cellWidth
+            player.position.y = Math.floor(player.cell / (gridColumns - 1)) * cellHeight
             // player.position = {
             //     x: player.cell % (gridColumns - 1) * cellWidth,
             //     y: Math.floor(player.cell / (gridColumns-1)) * cellHeight,}
@@ -277,7 +329,10 @@ function loadPreset(level) {
             ghostOrange.removeImportant = true
         break
         case 4:
-            player.cell = 98
+            // player.cell = 98
+            player.cell = 96
+            player.position.x = player.cell % (gridColumns - 1) * cellWidth
+            player.position.y = Math.floor(player.cell / (gridColumns - 1)) * cellHeight
             ghost.cell = 50
             ghost.speed = .7
         break
@@ -301,6 +356,21 @@ function loadPreset(level) {
             player.cell = 0
             ghost.cell = 10
             ghostOrange.remove = false
+            ghostGreen.remove = false
+        break
+        case 9:
+            player.cell = 0
+            ghost.cell = 10
+            gameState.imposibleCoins = 2
+            ghostOrange.remove = false
+            ghostGreen.remove = false
+            ghostGreen.cell = 32
+        break
+        case 10:
+            player.cell = 0
+            ghost.cell = 10
+            ghostOrange.remove = false
+            ghostGreen.remove = false
         break
         case 11:
             player.cell = 0
@@ -309,8 +379,8 @@ function loadPreset(level) {
             ghostGreen.remove = false
         break
         case "randLvl":
-                player.cell = 0
-                ghost.cell = 10
+            player.cell = 0
+            ghost.cell = 10
         break
     }
 }
@@ -327,6 +397,7 @@ function drawFrame() {
     //drawGrid()
     drawWalls()
     drawCoins()
+    // drawCellNumbers()
     drawPlayer()
     drawGhost()
     // if (ghostOrange.remove === false || sessionStorage.getItem("finished") === "true" && ghostOrange.removeImportant == false) {
@@ -378,12 +449,13 @@ function updateCoins() {
     // if (coinCounter === 0) alert("you win")
     if (coinCounter === 0) {
         const level = gameState.level + 1
-        if (level > 6) {
+        if (level > 10) {
             sessionStorage.setItem("finished", true)
             gameState.finished = sessionStorage.getItem("finished") === "true" ? true : false
+            alert("Congratulations \nYou Win") 
             return startLevel(1)
         } 
-        startLevel(gameState.level + 1)
+        startLevel(gameState.level + 1, player.lives)
     }
 }
 
@@ -451,7 +523,7 @@ function updatePlayer(e = "default") {
         player.position.x += moveX * speedMultiplier
         player.position.y += moveY * speedMultiplier
         frame += 1
-        if (frame > 25/speedMultiplier) { // clean it up later
+        if (frame > 25 / speedMultiplier) { // clean it up later
             player.cell += player.direction
             updateCoins()
             createPathFinding()
@@ -506,10 +578,11 @@ function updateOrangeGhost() {
         }
     }
 
-    if (distToPlayer < 2) {
-        alert ("you loose by pink ghost")
-        sessionStorage.setItem("finished", false)
-        startLevel(1)
+    if (distToPlayer < 1) {
+        ghostCatch()
+        // alert ("you lo1se by pink ghost")
+        // sessionStorage.setItem("finished", false)
+        // startLevel(1)
         return
     }
 
@@ -566,9 +639,7 @@ function updateGreenGhost() { // same as blue but never turns back
     
     // if (distToPlayer < 2) alert("you loose")
     if (distToPlayer < 2) {
-        alert ("you loose")
-        sessionStorage.setItem("finished", false)
-        startLevel(1)
+        ghostCatch()
         return
     }
 
@@ -653,9 +724,7 @@ function updateGhost() {
     
     // if (distToPlayer < 2) alert("you loose")
     if (distToPlayer < 2) {
-        alert ("you loose")
-        sessionStorage.setItem("finished", false)
-        startLevel(1)
+        ghostCatch()
         return
     }
 
@@ -681,7 +750,7 @@ function updateGhost() {
     const wouldGoBack = noPrevCell.indexOf(nextMove) === -1
     if (wouldGoBack) {
         const moveForward = noPrevCell[Math.floor(Math.random() * noPrevCell.length)]
-        const lookedBack = Math.random() < .01 // ghost will sometimes look back if player follows him
+        const lookedBack = Math.random() < .25 // ghost will sometimes look back if player follows him
         // NOTE: lookedBack at 80% chance makes him feel smart
         if (moveForward !== undefined && lookedBack == false) nextMove = moveForward
     } 
@@ -719,6 +788,19 @@ function updateGhost() {
         // thought: all ghosts could share ONE timeout AND one update function
         setTimeout(() => animateGhost(nextMove, cell, ++animFrame), 1)
         // setTimeout(() => animateGhost(nextMove, cell, ++animFrame), 8)
+    }
+}
+
+function ghostCatch(color) {
+    player.lives -= 1
+    if (player.lives < 0) {
+        alert("You Lose")
+        sessionStorage.setItem("finished", false)
+        startLevel(1)
+        player.lives = 3
+    } else {
+        alert("whoops...")
+        startLevel(gameState.level, player.lives)
     }
 }
 
@@ -826,6 +908,10 @@ function drawGhost() {
 }
 
 function formatLevel() { // adds a cell between every "level" cell
+if (level == undefined) {
+    level = levels[1]
+    gameState.level = levels[1]
+}
     for (let i = 0; i < level.length; i++) {
         const floor = Math.floor(i / columnsNum)
         const skip = floor * (columnsNum - 1) * 2
@@ -893,15 +979,24 @@ function drawCoins() {
         const x = coin % 11 + 1
         const y = Math.floor(coin / 11) + 1
 
-        // draw coins' numbers:
-        // ctx.font = "10px Comic Sans MS"
-        // ctx.fillStyle = "purple"
-        // ctx.fillText(`${coin}`, x * 25, y * 25)
         
         ctx.fillStyle = "yellow"
         ctx.beginPath()
         ctx.arc(x * 25, y * 25, 4, 0, Math.PI * 2)
         ctx.fill()
+    })
+}
+
+function drawCellNumbers() {
+    
+    coinsGrid.forEach(coin => {
+        const x = coin % 11 + 1
+        const y = Math.floor(coin / 11) + 1
+        
+        // draw coins' numbers:
+        ctx.font = "10px Comic Sans MS"
+        ctx.fillStyle = "purple"
+        ctx.fillText(`${coin}`, x * 25, y * 25)
     })
 }
 
