@@ -2,7 +2,11 @@
 <html>
 <head>
     <title>pakmon v3</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <style>
+        /* * {
+            outline: red 1px solid;
+        } */
         body {
             background-color: black;
         }
@@ -42,6 +46,19 @@
             align-items: center;
             scale: 1.5;
         }
+        @media only screen and (max-width: 700px) {
+            body {
+                margin: 0;
+                overscroll-behavior: none;
+            }
+            canvas {
+                margin: 0;
+            }
+            .game {
+                /* margin-top: 50%; */
+                scale: 1;
+            };
+        }
     </style>
     
 </head>
@@ -58,11 +75,15 @@
             </div>
         </div>
     </div>
+    <div class="hudElem" id="touchStartTest">s</div>
+    <div class="hudElem" id="touchEndTest">e</div>
+    <div class="hudElem" id="directionTest">e</div>
 
 <script>
 
-const liveIcons = document.querySelectorAll(".livesIcon")
-
+    
+    const liveIcons = document.querySelectorAll(".livesIcon")
+    
 const my_canvas = document.getElementById("canvas")
 const ctx = my_canvas.getContext("2d")
 
@@ -215,6 +236,7 @@ const ghost = {
     position: {x: 0, y: 0},
     direction: 0,
     speed: .5,
+    // speed: .1,
     remove: false,
     prevCell: undefined,
 }
@@ -222,6 +244,7 @@ const ghostOrange = {
     cell: 6,
     position: {x: 0, y: 0},
     speed: .5,
+    // speed: .1,
     remove: true,
     prevCell: undefined,
 }
@@ -229,6 +252,7 @@ const ghostGreen = {
     cell: 98,
     position: {x: 0, y: 0},
     speed: .5,
+    // speed: .1,
     remove: true,
     prevCell: undefined,
 }
@@ -478,6 +502,7 @@ function updatePlayer(e = "default") {
     function moveSmoothly(direction, frame = 0) {
         if (gameState.pause) return
         const speedMultiplier = 1
+        // const speedMultiplier = .2
         // those numbers are hardcoded for a 6x5 level:
         const moveX = direction === 1 || direction === -1 ? direction : 0
         const moveY = direction === 11 || direction ===  -11 ? direction / 11 : 0
@@ -918,7 +943,6 @@ function drawCoins() {
     coinsGrid.forEach(coin => {
         const x = coin % 11 + 1
         const y = Math.floor(coin / 11) + 1
-
         
         ctx.fillStyle = "yellow"
         ctx.beginPath()
@@ -928,7 +952,6 @@ function drawCoins() {
 }
 
 function drawCellNumbers() {
-    
     coinsGrid.forEach(coin => {
         const x = coin % 11 + 1
         const y = Math.floor(coin / 11) + 1
@@ -939,6 +962,108 @@ function drawCellNumbers() {
         ctx.fillText(`${coin}`, x * 25, y * 25)
     })
 }
+
+// // Prevent zooming with more than one finger
+// document.addEventListener('touchstart', function(e) {
+//     if (e.touches.length > 1) {
+//         e.preventDefault(); // Prevent zoom
+//     }
+// }, { passive: false });
+
+// // Prevent pinch zooming with gestures
+// document.addEventListener('gesturestart', function(e) {
+//     e.preventDefault(); // Prevent zoom gesture
+// }, { passive: false });
+
+const touchStart = {x: 0, y: 0}
+const touchEnd = {x: 0, y: 0}
+
+window.addEventListener("touchstart", (e) => {
+    // this code:
+    // const { touches, changedTouches } = e.originalEvent ?? e;
+    // const touch = touches[0] ?? changedTouches[0];
+    // touchStart.x = touch.pageX;
+    // touchStart.y = touch.pageY;
+    
+    // means this (?):
+    // let touches = e.originalEvent?.touches
+    // let changedTouches = e.originalEvent?.changedTouches
+    // if (touches == undefined) touches = e.touches
+    // if (changedTouches == undefined) changedTouches = e.changedTouches
+    // let touch = touches[0]
+    // if (touch == undefined) touch = changedTouches[0]
+    // touchStart.x = touch.pageX;
+    // touchStart.y = touch.pageY;
+
+    // this works on my phone
+    let touches = e.touches
+    let changedTouches = e.changedTouches
+    let touch = touches[0]
+    touchStart.x = Math.floor(touch.pageX);
+    touchStart.y = Math.floor(touch.pageY);
+    
+    touchStartTest.innerText = `x: ${touchStart.x}, y: ${touchStart.y}`
+}, {passive: false})
+
+window.addEventListener("touchend", (e) => {
+    // const { touches, changedTouches } = e.originalEvent ?? e;
+    // const touch = touches[0] ?? changedTouches[0];
+    // touchEnd.x = touch.pageX;
+    // touchEnd.y = touch.pageY;
+    
+    // works:
+    let touches = e.touches
+    let changedTouches = e.changedTouches
+    let touch = changedTouches[0]
+    touchEnd.x = Math.floor(touch.pageX);
+    touchEnd.y = Math.floor(touch.pageY);
+
+    touchStartTest.innerText = `x: ${touchStart.x}, y: ${touchStart.y}`
+    touchEndTest.innerText = `x: ${touchEnd.x}, y: ${touchEnd.y}`
+
+    const diffVert = Math.floor(touchStart.y - touchEnd.y)
+    const diffHoriz = Math.floor(touchStart.x - touchEnd.x)
+
+    // if (touchStart.y - touchEnd.y > 50) {
+    //     alert("up")
+
+    // }
+    // if (touchStart.y - touchEnd.y < -50) {
+    //     alert("down")
+
+    // }
+    // if (touchStart.x - touchEnd.x > 50) {
+    //     alert("left")
+
+    // }
+    // if (touchStart.x - touchEnd.x < -50) {
+    //     alert("right")
+
+    // }
+
+
+    if (Math.abs(diffVert) > Math.abs(diffHoriz)) {
+        if (diffVert > 0) {
+            updatePlayer("ArrowUp")
+            directionTest.innerText = "ArrowUp"
+            //alert("vert up" + JSON.stringify(player))
+        } else if (diffVert < 0) {
+            updatePlayer("ArrowDown")
+            directionTest.innerText = "ArrowDown"
+            //alert("vert down" + JSON.stringify(player))
+        }
+    } else if (Math.abs(diffVert) < Math.abs(diffHoriz)) {
+        if (diffHoriz > 0) {
+            updatePlayer("ArrowLeft")
+            directionTest.innerText = "ArrowLeft"
+            //alert("horiz left" + JSON.stringify(player))
+        } else if (diffHoriz < 0) {
+            updatePlayer("ArrowRight")
+            directionTest.innerText = "ArrowRight"
+            //alert("horiz right" + JSON.stringify(player))
+        }
+    } 
+}, {passive: false})
 
 </script>
 
