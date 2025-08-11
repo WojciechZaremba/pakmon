@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>pakmon v3</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <style>
+        /* * {
+            outline: red 1px solid;
+        } */
+        body {
+            background-color: black;
+        }
+        canvas {
+            border: 1px solid white;
+            margin: 45px;
+            margin-bottom: 0px;
+        }
+        div {
+            color: white;
+        }
+        .livesIcon {
+            scale: .5;
+            margin-right: -15px;
+        }
+        .hud {
+            width: 275px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .livesContainer {
+            width: 97px;
+            display: flex;
+            align-items: center;
+        }
+        .livesIcon {
+            display: none;
+        }
+        .game {
+            width: fit-content;
+            margin: auto;
+            margin-top: 10%;
+            /* margin-top: 100px; */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            scale: 1.5;
+        }
+        @media only screen and (max-width: 700px) {
+            body {
+                margin: 0;
+                overscroll-behavior: none;
+            }
+            canvas {
+                margin: 0;
+            }
+            .game {
+                /* margin-top: 50%; */
+                scale: 1;
+            };
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="game">
+        <canvas id="canvas" width="300" height="250"></canvas>
+        <br>
+        <div class="hud">
+            <div class="hudElem" id="par5">Level: 1</div>
+            <div class="hudElem livesContainer" id="livesLeft">Lives:
+                <img class="livesIcon" src="./pakmonIcon.jpg" alt="pakmon icon">
+                <img class="livesIcon" src="./pakmonIcon.jpg" alt="pakmon icon">
+                <img class="livesIcon" src="./pakmonIcon.jpg" alt="pakmon icon">
+            </div>
+        </div>
+    </div>
+    <div class="hudElem" id="touchStartTest">s</div>
+    <div class="hudElem" id="touchEndTest">e</div>
+    <div class="hudElem" id="directionTest">e</div>
+
+<script>
+
+    
+    const liveIcons = document.querySelectorAll(".livesIcon")
+    
+const my_canvas = document.getElementById("canvas")
+const ctx = my_canvas.getContext("2d")
+
+const canvasWidth = 300
+const canvasHeight = 250
+
+my_canvas.width = canvasWidth
+my_canvas.height = canvasHeight
+
+const rowsNum = 5
+const columnsNum = 6
+let gridRows = rowsNum * 2
+let gridColumns = columnsNum * 2
+
+let cellWidth = canvasWidth / gridColumns
+let cellHeight = canvasHeight / gridRows
+
+const levels = { // arr idx works as a cell number, arr contains open passages
+    columns: 6,
+    rows: 5,
+    1: [[6,1],[0,7,2],[1,3],[2,9],[10,5],[4],[0,12],[1,8,13],[9,7],[3,8,10],[11,9,4],[17,10],[18,6],[7,14],[13,20,15],[21,14],[17,22],[16,11,23],[19,12,24],[20,18],[14,19],[27,15,22],[21,16],[17,29],[18,25],[24,26],[25,27],[26,21,28],[27],[23]],
+    2: [[6,1],[0,2],[1,3],[2,9,4],[3,5],[4,11],[0,12],[8,13],[9,7,14],[3,8,10,15],[9,16],[5,17],[13,6,18],[7,12,19],[20,8],[9],[17,10,22],[11,16,23],[12,24],[20,13],[21,19,14],[27,20,22],[16,21],[17,29],[18,25],[24,26],[25,27],[26,21,28],[29,27],[23,28]],
+    3: [[6],[2,7],[3,1],[2,4],[5,3],[11,4],[0,12],[1,13],[9,14],[10,8],[16,9],[17,5],[6,18],[7,19],[8,15],[14,16],[22,10,15],[23,11],[12,24],[13,20],[19,21],[20,22],[21,16],[29,17],[18,25],[24,26],[25,27],[28,26],[27,29],[28,23]], 
+    4: [[1,6],[0,2,7],[8,1],[9,4],[5,3],[4,11],[0],[13,1],[2,9],[8,3],[16],[5,17],[13,18],[14,7,19,12],[13,20],[16],[15,10,22,17],[11,16],[24,12],[13],[21,26,14],[27,20],[16],[29],[18,25],[24,26],[20,25],[21,28],[29,27],[23,28]], 
+    5: [[1,6],[2,0],[3,1],[9,2],[10,5],[4],[0,7],[6,13],[14,9],[10,3,8],[11,4,9],[17,10],[13,18],[7,12],[8,15],[14,21],[22,17],[16,11],[12,19,24],[18,20],[19,21,26],[20,15],[23,16],[22,29],[18,25],[24],[27,20],[28,26],[29,27],[23,28]], 
+    6: [[1,6],[2,0],[8,3,1],[2,4],[3,10,5],[4],[0,12],[],[14,2],[],[16,4],[17],[6,13,18],[14,12,19],[15,8,13],[16,14,21],[15,10,17],[16,11,23],[12,24],[13,25],[],[27,15],[],[17,29],[18],[19,26],[25,27],[28,21,26],[29,27],[23,28]], 
+    9: [[6,1],[0,2],[3,1,8],[2,4,9],[3,5],[4,11],[12,0],[],[2,14],[15,3],[],[17,5],[18,6,13],[12,14],[8,13,20],[9,16,21],[15,17],[16,11,23],[24,12],[20],[21,14,19,26],[20,15,22],[21],[17,29],[25,18],[24,26],[25,27,20],[28,26],[29,27],[23,28]],
+    10: [[6,1],[2,0],[3,1],[9,2],[10,5],[4],[0,7],[6,13,8],[14,9,7],[8,3,10],[9,4,11],[10,17],[13,18],[7,12],[15,8],[21,14],[17,22],[11,16],[12,24,19],[18,20],[19,21,26],[20,15,22],[16,23,21],[22,29],[18,25],[24,26],[27,20,25],[28,26],[29,27],[23,28]],
+    // algorithm is too bad to use
+    // 999: createRandomLevel(),
+}
+levels[7] = levels[1]
+levels[8] = levels[2]
+//levels[9] = levels[5]
+//levels[10] = levels[6]
+levels[11] = levels[1]
+
+// this is wrong
+function createRandomLevel(a) {
+    const col = 6
+    const row = 5
+    const cells = col * row
+
+    const emptyLvl = []
+
+    for (let i = 0; i < cells; i++) {
+        emptyLvl.push([])
+        if (i >= col) {
+            emptyLvl[i].push(i - col)
+        }
+        if (i < cells - col ) {
+            emptyLvl[i].push(i + col)
+        }
+        if (i % col !== 0) {
+            emptyLvl[i].push(i - 1)
+        }
+        if ((i + 1) % col !== 0) {
+            emptyLvl[i].push(i + 1)
+        }
+    }
+
+    const randomWalls = emptyLvl.map(cell => cell.map(openedTo => openedTo))
+
+    for (let i = 0; i < (col) * (row - 1); i++) {
+        if ((i + 1) % col === 0) continue
+
+        const rng = Math.random()
+
+        let closeFrom
+        let closeTo
+
+        if (rng < .25) {
+            closeFrom = i
+            closeTo = i + 1
+        } else if (rng < .5) {
+            closeFrom = i + 1
+            closeTo = i + 1 + col
+        } else if (rng < .75) {
+            closeFrom = i + 1 + col
+            closeTo = i + col
+        } else {
+            closeFrom = i + col
+            closeTo = i
+        }
+
+        const idx1 = randomWalls[closeFrom].indexOf(closeTo)
+        const idx2 = randomWalls[closeTo].indexOf(closeFrom)
+
+        if (idx1 !== -1) {
+            randomWalls[closeFrom].splice(idx1, 1)
+        }
+        if (idx2 !== -1) {
+            randomWalls[closeFrom].splice(idx2, 1)
+        }
+    }
+
+    // for (let i = 0; i < (col)*(row-1); i++) {
+    //     const rng = Math.random()
+    //     let idx
+    //     // if (rng < .25) {
+    //     if (true) {
+    //         const close = i + 6
+    //         idx = randomWalls[i].indexOf(close)
+    //         randomWalls[i].splice(idx,1)
+    //     } 
+        // else if (rng < .5) {
+        // } else if (true) {
+        //     const close = i + 6
+        //     idx = randomWalls[i].indexOf(close)
+        //     randomWalls[i].splice(idx,1)
+        // } else if (rng < .75) {
+        //     const close = i - 6
+        //     idx = randomWalls[i].indexOf(close)
+        //     randomWalls[i].splice(idx,1)
+
+        // } else {
+
+        // }
+    // }
+
+    return randomWalls
+}
+
+
+let level = levels[Number(sessionStorage.getItem("lvl"))]
+let levelFormatted = {} // added a cell between every cell from a "level"
+let coinsGrid = [] // contains numbers of cells with a coin in them
+let coinCounter = 0
+let distanceGrid = [] // cells grouped and sorted by a distance
+
+let playerStartingCell = 0
+let ghostStartingCell = 10
+
+const player = {
+    cell: playerStartingCell, // current position
+    direction: 0, // difference between next and current cell
+    quedDirection: 0,
+    // position: {
+    //     x: playerStartingCell % (gridColumns - 1) * cellWidth,
+    //     y: Math.floor(playerStartingCell / (gridColumns-1)) * cellHeight,
+    //     }, // use as where to draw in pixels
+    position: {
+        x: 0,
+        y: 0,
+        }, // use as where to draw in pixels
+    lives: sessionStorage.getItem("livesLeft") !== null ? Number(sessionStorage.getItem("livesLeft")) : 3
+}
+const ghost = {
+    cell: ghostStartingCell,
+    position: {x: 0, y: 0},
+    direction: 0,
+    speed: .5,
+    // speed: .1,
+    remove: false,
+    prevCell: undefined,
+}
+const ghostOrange = {
+    cell: 6,
+    position: {x: 0, y: 0},
+    speed: .5,
+    // speed: .1,
+    remove: true,
+    prevCell: undefined,
+}
+const ghostGreen = {
+    cell: 98,
+    position: {x: 0, y: 0},
+    speed: .5,
+    // speed: .1,
+    remove: true,
+    prevCell: undefined,
+}
+const gameState = {
+    level: Number(sessionStorage.getItem("lvl")),
+    pause: false,
+    imposibleCoins: 0,
+    finished: sessionStorage.getItem("finished") === "true" ? true : false,
+}
+
+if (level == undefined) {
+    level = levels[1]
+    gameState.level = 1
+    sessionStorage.setItem("lvl", 1)
+}
+
+par5.innerText = `Level: ${gameState.level}`
+for (let i = 0; i < player.lives; i++) { 
+    liveIcons[i].style.display = "block"
+}
+
+loadPreset(gameState.level)
+formatLevel()
+createCoinsGrid()
+createPathFinding()
+updateCoins()
+updatePlayer()
+updateGhost()
+
+drawGrid()
+drawWalls()
+//drawCoins()
+//drawPlayer()
+drawGhost()
+if (ghostOrange.remove === false) {
+    updateOrangeGhost()
+    drawOrangeGhost()
+} 
+if (ghostGreen.remove === false) {
+    updateGreenGhost()
+    drawGreenGhost()
+} 
+
+const gameLoop = setInterval(() => {
+    drawFrame()
+}, 16)
+
+function startLevel(level, livesLeft = 3) {
+    console.log(level)
+    sessionStorage.setItem("lvl", level)
+    sessionStorage.setItem("livesLeft", livesLeft)
+    window.location.reload()
+}
+
+function loadPreset(level) {
+    console.log(level)
+    switch (level) {
+        case 1:
+            player.cell = 0
+            ghost.cell = 10
+        break
+        case 2:
+            player.cell = 0
+            ghost.cell = 50
+        break
+        case 3:
+            player.cell = 22
+            player.position.x = player.cell % (gridColumns - 1) * cellWidth
+            player.position.y = Math.floor(player.cell / (gridColumns - 1)) * cellHeight
+            player.direction = 11 // move down
+            ghost.cell = 0
+            ghost.speed = 1
+            ghostOrange.removeImportant = true
+        break
+        case 4:
+            player.cell = 96
+            player.position.x = player.cell % (gridColumns - 1) * cellWidth
+            player.position.y = Math.floor(player.cell / (gridColumns - 1)) * cellHeight
+            ghost.cell = 50
+            ghost.speed = .7
+        break
+        case 5:
+            player.cell = 0
+            ghost.cell = 10
+            ghostOrange.remove = false
+        break
+        case 6:
+            player.cell = 0
+            ghost.cell = 10
+            gameState.imposibleCoins = 4
+            ghostOrange.remove = false
+        break
+        case 7:
+            player.cell = 0
+            ghost.cell = 10
+            ghostOrange.remove = false
+        break
+        case 8:
+            player.cell = 0
+            ghost.cell = 10
+            ghostOrange.remove = false
+            ghostGreen.remove = false
+        break
+        case 9:
+            player.cell = 0
+            ghost.cell = 10
+            gameState.imposibleCoins = 2
+            ghostOrange.remove = false
+            ghostGreen.remove = false
+            ghostGreen.cell = 32
+        break
+        case 10:
+            player.cell = 0
+            ghost.cell = 10
+            ghostOrange.remove = false
+            ghostGreen.remove = false
+        break
+        case 11:
+            player.cell = 0
+            ghost.cell = 10
+            ghostOrange.remove = false
+            ghostGreen.remove = false
+        break
+        case "randLvl":
+            player.cell = 0
+            ghost.cell = 10
+        break
+    }
+}
+
+//TODO: rewrite everything using requestAnimationKeyframe()
+function drawFrame() {
+    ctx.clearRect(0, 0, 300, 250)
+    //drawGrid()
+    drawWalls()
+    drawCoins()
+    // drawCellNumbers()
+    drawPlayer()
+    drawGhost()
+
+    if (ghostOrange.remove === false) {
+        //console.log("draw pink guy")
+        drawOrangeGhost()
+    } 
+    if (ghostGreen.remove === false) {
+        drawGreenGhost()
+    } 
+}
+
+function debugPathfinding(ghostColor) {
+    let pathToDraw
+    if (ghostColor === undefined) {
+        pathToDraw = distanceGrid
+    } else if (ghostColor === "orange") {
+        pathToDraw = ghostOrange.path
+    }
+
+
+    ctx.font = "12px Comic Sans MS";
+    ctx.fillStyle = "orange"
+    for (let i = 0; i < pathToDraw.length; i++) {
+        const dist = i
+        pathToDraw[i].forEach(cell => {
+            const x = cell % (gridColumns-1)
+            const y = Math.floor(cell / (gridColumns-1))
+            ctx.fillText(`${i}`, x * 25 + 25, y * 25 + 25)
+        })
+    }
+}
+
+function updateCoins() {
+    if (gameState.pause) return
+    const playerCell = player.cell
+    const coins = coinsGrid
+
+    let idx = coins.indexOf(playerCell)
+
+    if (coins.indexOf(playerCell) !== -1) {
+        coins[idx] = undefined
+        coinCounter -= 1
+    }
+    if (coinCounter === 0) {
+        const level = gameState.level + 1
+        if (level > 10) {
+            sessionStorage.setItem("finished", true)
+            gameState.finished = sessionStorage.getItem("finished") === "true" ? true : false
+            alert("Congratulations \nYou Win") 
+            return startLevel(1)
+        } 
+        startLevel(gameState.level + 1, player.lives)
+    }
+}
+
+function updatePlayer(e = "default") {
+    if (gameState.pause) return
+    const input = e.key || e
+     switch (input) {
+         case "ArrowLeft":
+            if (player.direction && player.direction !== 0) return player.quedDirection = -1
+            player.direction = -1
+            if (isMoveLegal(player.cell, player.direction)) {
+                moveSmoothly(player.direction)
+            } else {
+                player.direction = 0
+            }
+        break
+        case "ArrowRight":
+            if (player.direction && player.direction !== 0) return player.quedDirection = 1
+            player.direction = 1
+            if (isMoveLegal(player.cell, player.direction)) {
+                 moveSmoothly(player.direction)
+            } else {
+                player.direction = 0
+            }
+        break   
+        case "ArrowUp":
+            if (player.direction && player.direction !== 0) return player.quedDirection = -11
+            player.direction = -11
+            if (isMoveLegal(player.cell, player.direction)) {
+                 moveSmoothly(player.direction)
+            } else {
+                player.direction = 0
+            }
+        break
+        case "ArrowDown":
+            if (player.direction && player.direction !== 0) return  player.quedDirection = 11
+            player.direction = 11
+            if (isMoveLegal(player.cell, player.direction)) {
+                 moveSmoothly(player.direction)
+            } else {
+                player.direction = 0
+            }
+        break
+        case "default":
+            if (isMoveLegal(player.cell, player.direction)) {
+                 moveSmoothly(player.direction)
+            } else {
+                player.direction = 0
+            }
+        break
+    }   
+    
+    createPathFinding()
+    
+    function isMoveLegal(curr, direction) {
+        return levelFormatted[curr]?.indexOf(curr + direction) !== -1
+    }
+    function moveSmoothly(direction, frame = 0) {
+        if (gameState.pause) return
+        const speedMultiplier = 1
+        // const speedMultiplier = .2
+        // those numbers are hardcoded for a 6x5 level:
+        const moveX = direction === 1 || direction === -1 ? direction : 0
+        const moveY = direction === 11 || direction ===  -11 ? direction / 11 : 0
+
+        player.position.x += moveX * speedMultiplier
+        player.position.y += moveY * speedMultiplier
+        frame += 1
+        if (frame > 25 / speedMultiplier) { // clean it up later
+            player.cell += player.direction
+            updateCoins()
+            createPathFinding()
+            player.position.x = player.cell % (gridColumns - 1) * cellWidth
+            player.position.y = Math.floor(player.cell / (gridColumns - 1)) * cellHeight
+            if (player.quedDirection !== 0 && isMoveLegal(player.cell, player.quedDirection)) {
+                player.direction = player.quedDirection
+                player.quedDirection = 0
+                moveSmoothly(player.direction)
+            } else if (isMoveLegal(player.cell, player.direction)) {
+                moveSmoothly(player.direction)
+            } else {
+                player.direction = 0
+            }
+        } else {
+            // setTimeout(() => moveSmoothly(direction, frame), 1)
+            setTimeout(() => moveSmoothly(direction, frame), 32)
+        }
+    }
+}
+function handleKeyUp(e) {
+    switch (e.key) {
+        case "ArrowUp":
+            if (player.quedDirection === -11) setTimeout(() => player.quedDirection = 0, 350)
+        break
+        case "ArrowDown":
+            if (player.quedDirection === 11) setTimeout(() => player.quedDirection = 0, 350)
+        break
+        case "ArrowRight":
+            if (player.quedDirection === 1) setTimeout(() => player.quedDirection = 0, 350)
+        break
+        case "ArrowLeft": 
+            if (player.quedDirection === -1) setTimeout(() => player.quedDirection = 0, 350)
+        break
+        case " ": 
+            gameState.pause = true
+    }
+}
+
+document.addEventListener("keydown", updatePlayer)
+document.addEventListener("keyup", handleKeyUp)
+
+//TO DO: one func for updating every ghost
+function updateOrangeGhost() {
+    if (gameState.pause) return
+    const cell = ghostOrange.cell
+
+    let distToPlayer = 0
+    for (let i = 0; i < distanceGrid.length; i++) {
+        if (distanceGrid[i].indexOf(cell) !== -1) {
+            distToPlayer = i
+            break
+        }
+    }
+
+    if (distToPlayer < 1) {
+        ghostCatch()
+        return
+    }
+
+    const noPrevCell = levelFormatted[ghostOrange.cell].filter(cell => cell != ghostOrange.prevCell)
+
+    let nextMove = noPrevCell[Math.floor(Math.random() * noPrevCell.length)]
+    if (nextMove === undefined) nextMove = levelFormatted[ghostOrange.cell][0] // if dead end, move back
+    const direction = nextMove - cell
+
+    ghostOrange.position.x = ghostOrange.cell % (gridColumns-1) * cellWidth
+    ghostOrange.position.y = Math.floor(ghostOrange.cell / (gridColumns-1)) * cellHeight
+    
+    ghostOrange.prevCell = cell
+    ghostOrange.cell = nextMove
+
+    animateGhost(cell, nextMove, 0)
+    function animateGhost(nextMove, cell, animFrame = 0) {
+        const speedMultiplier = ghostOrange.speed
+        if (gameState.pause) return
+        // those numbers are hardcoded for a 6x5 level:
+        if (direction === -1) {
+            ghostOrange.position.x -= 1 * speedMultiplier
+        } else if (direction === 1) {
+            ghostOrange.position.x += 1 * speedMultiplier
+        } else if (direction === -11) {
+            ghostOrange.position.y -= 1 * speedMultiplier
+        } else if (direction === 11) {
+            ghostOrange.position.y += 1 * speedMultiplier
+        }
+        if (animFrame >= 25 / speedMultiplier) {
+            return updateOrangeGhost()
+        }
+        // setTimeout(() => animateGhost(nextMove, cell, ++animFrame), 1)
+        // setTimeout(() => animateGhost(nextMove, cell, ++animFrame), 8)
+        setTimeout(() => animateGhost(nextMove, cell, ++animFrame), 40)
+    }
+}
+
+function updateGreenGhost() { // same as blue but never turns back
+    if (gameState.pause) return
+
+    const cell = ghostGreen.cell
+
+    let distToPlayer = 0
+    for (let i = 0; i < distanceGrid.length; i++) {
+        if (distanceGrid[i].indexOf(cell) !== -1) {
+            distToPlayer = i
+            break
+        }
+    }
+    
+    if (distToPlayer < 2) {
+        ghostCatch()
+        return
+    }
+
+    const possibleMoves = distanceGrid[distToPlayer - 1].filter(nextCell => {
+        let result = false
+        // those numbers are hardcoded for a 6x5 level:
+        // note: this causes a strange behaviour when a ghost can rarely teleport through a side wall
+        // note1: it looks pretty cool
+        if (nextCell - cell === 1  || 
+            nextCell - cell === -1 ||
+            nextCell - cell === 11 ||
+            nextCell - cell === -11
+        ) {
+            result = true
+        }
+        return result
+    })
+
+
+    // now ghost avoids going back, is it more fun?
+    const noPrevCell = levelFormatted[ghostGreen.cell].filter(cell => cell != ghostGreen.prevCell)
+    let nextMove = possibleMoves[Math.floor(Math.random() * possibleMoves.length)]
+    const wouldGoBack = noPrevCell.indexOf(nextMove) === -1
+    if (wouldGoBack) {
+        const moveForward = noPrevCell[Math.floor(Math.random() * noPrevCell.length)]
+        const lookedBack = 0 // green ghost never looks back
+        if (moveForward !== undefined && lookedBack == false) nextMove = moveForward
+    } 
+
+    const direction = nextMove - cell
+
+    ghostGreen.position.x = ghostGreen.cell % (gridColumns-1) * cellWidth
+    ghostGreen.position.y = Math.floor(ghostGreen.cell / (gridColumns-1)) * cellHeight
+    ghostGreen.prevCell = cell
+    ghostGreen.cell = nextMove
+
+    animateGreenGhost(cell, nextMove, 0)
+    function animateGreenGhost(nextMove, cell, animFrame = 0) {
+        const speedMultiplier = ghostGreen.speed
+        if (gameState.pause) return
+        // those numbers are hardcoded for a 6x5 level:
+        if (direction === -1) {
+            ghostGreen.position.x -= 1 * speedMultiplier
+        } else if (direction === 1) {
+            ghostGreen.position.x += 1 * speedMultiplier
+        } else if (direction === -11) {
+            ghostGreen.position.y -= 1 * speedMultiplier
+        } else if (direction === 11) {
+            ghostGreen.position.y += 1 * speedMultiplier
+        }
+        if (animFrame >= 25 / speedMultiplier) {
+            return updateGreenGhost()
+        }
+        //TODO: think about this timeout
+        // thought: all ghosts could share ONE timeout AND one update function
+        // setTimeout(() => animateGreenGhost(nextMove, cell, ++animFrame), 1)
+        // setTimeout(() => animateGreenGhost(nextMove, cell, ++animFrame), 8)
+        setTimeout(() => animateGreenGhost(nextMove, cell, ++animFrame), 40)
+    }
+}
+
+function updateGhost() {
+    if (gameState.pause) return
+
+    const cell = ghost.cell
+
+    let distToPlayer = 0
+    for (let i = 0; i < distanceGrid.length; i++) {
+        if (distanceGrid[i].indexOf(cell) !== -1) {
+            distToPlayer = i
+            break
+        }
+    }
+
+    if (distToPlayer < 2) {
+        ghostCatch()
+        return
+    }
+
+    const possibleMoves = distanceGrid[distToPlayer - 1].filter(nextCell => {
+        let result = false
+        // those numbers are hardcoded for a 6x5 level:
+        // note: this causes a strange behaviour when a ghost can rarely teleport through a side wall
+        // note1: it looks pretty cool
+        if (nextCell - cell === 1  || 
+            nextCell - cell === -1 ||
+            nextCell - cell === 11 ||
+            nextCell - cell === -11
+        ) {
+            result = true
+        }
+        return result
+    })
+
+
+    // now ghost avoids going back, is it more fun?
+    const noPrevCell = levelFormatted[ghost.cell].filter(cell => cell != ghost.prevCell)
+    let nextMove = possibleMoves[Math.floor(Math.random() * possibleMoves.length)]
+    const wouldGoBack = noPrevCell.indexOf(nextMove) === -1
+    if (wouldGoBack) {
+        const moveForward = noPrevCell[Math.floor(Math.random() * noPrevCell.length)]
+        const lookedBack = Math.random() < .25 // ghost will sometimes look back if player follows him
+        // NOTE: lookedBack at 80% chance makes him feel smart
+        // NOTE1: 25% is enough
+        if (moveForward !== undefined && lookedBack == false) nextMove = moveForward
+    } 
+
+    const direction = nextMove - cell
+
+    ghost.position.x = ghost.cell % (gridColumns-1) * cellWidth
+    ghost.position.y = Math.floor(ghost.cell / (gridColumns-1)) * cellHeight
+    ghost.prevCell = cell
+    ghost.cell = nextMove
+
+    animateGhost(cell, nextMove, 0)
+    function animateGhost(nextMove, cell, animFrame = 0) {
+        const speedMultiplier = ghost.speed
+        if (gameState.pause) return
+        // those numbers are hardcoded for a 6x5 level:
+        if (direction === -1) {
+            ghost.position.x -= 1 * speedMultiplier
+        } else if (direction === 1) {
+            ghost.position.x += 1 * speedMultiplier
+        } else if (direction === -11) {
+            ghost.position.y -= 1 * speedMultiplier
+        } else if (direction === 11) {
+            ghost.position.y += 1 * speedMultiplier
+        }
+        if (animFrame >= 25 / speedMultiplier) {
+            return updateGhost()
+        }
+        //TODO: think about this timeout
+        // thought: all ghosts could share ONE timeout AND one update function
+        // setTimeout(() => animateGhost(nextMove, cell, ++animFrame), 1)
+        // setTimeout(() => animateGhost(nextMove, cell, ++animFrame), 8)
+        setTimeout(() => animateGhost(nextMove, cell, ++animFrame), 40)
+    }
+}
+
+function ghostCatch(color) {
+    player.lives -= 1
+    if (player.lives < 0) {
+        alert("You Lose")
+        sessionStorage.setItem("finished", false)
+        startLevel(1)
+        player.lives = 3
+    } else {
+        alert("whoops...")
+        startLevel(gameState.level, player.lives)
+    }
+}
+
+// TO DO: clean it up
+// since the pink ghost walks randomly, we're not using "orange pathfinding" for now
+function createPathFinding(ghostColor) {
+    if (ghostColor === undefined) {
+        distanceGrid = []
+    } 
+    // else if (ghostColor === "orange") {
+    //     ghostOrange.path = []
+    // }
+
+    const passagesObj = levelFormatted
+    const cellsAvaiable = Object.keys(levelFormatted)
+
+    let sortedByDistance = []  
+    // reminder: operations on sortedByDistance will change the distanceGrid too
+    if (ghostColor === undefined) {
+        sortedByDistance = distanceGrid 
+    } 
+    // else if (ghostColor === "orange") {
+    //     sortedByDistance = ghostOrange.path
+    // }
+    const cellsUsed = []
+
+    let root
+    // if (ghostColor === "orange") {
+    //     root = Number(cellsAvaiable[Math.floor(Math.random() * cellsAvaiable.length)])
+    // } else 
+    if (ghostColor === undefined) {
+        root = player.cell
+    }
+
+    sortedByDistance.push([root])
+    cellsUsed.push(root)
+
+    let temp = []
+    while (cellsUsed.length < cellsAvaiable.length) {
+        sortedByDistance[sortedByDistance.length - 1].forEach(cell => {
+            passagesObj[cell]?.forEach(openTo => {
+                if (cellsUsed.indexOf(openTo) !== -1) return
+                temp.push(openTo)
+                cellsUsed.push(openTo)
+            })
+        })
+        if (temp.length === 0) break
+        sortedByDistance.push(temp)
+        temp = []
+    }
+}
+
+function drawPlayer() {
+    const x = player.position.x
+    const y = player.position.y
+
+    ctx.beginPath()
+    ctx.arc(x + 25, y  + 25, 12, 0, Math.PI * 2)
+    ctx.fillStyle = "yellow"
+    ctx.fill()
+
+    ctx.strokeStyle = "black"
+    ctx.strokeText("^  ^", x + 18, y + 32,14);
+}
+
+//TO DO: one drawghost func for all ghosts
+function drawOrangeGhost() {
+    const x = ghostOrange.position.x
+    const y = ghostOrange.position.y
+
+    ctx.beginPath()
+    ctx.fillStyle = "pink"
+    ctx.rect(x + 14, y + 10, 23, 23)
+    ctx.fill()
+
+    ctx.font = "10px Comic Sans MS"
+    ctx.strokeStyle = "black"
+    ctx.strokeText("* -*", x + 17, y + 25, 20);
+}
+function drawGreenGhost() {
+    const x = ghostGreen.position.x
+    const y = ghostGreen.position.y
+
+    ctx.beginPath()
+    ctx.fillStyle = "green"
+    ctx.rect(x + 14, y + 10, 23, 23)
+    ctx.fill()
+
+    ctx.font = "10px Comic Sans MS"
+    ctx.strokeStyle = "black"
+    ctx.strokeText("*_*", x + 17, y + 25, 18);
+}
+function drawGhost() {
+    const x = ghost.position.x
+    const y = ghost.position.y
+
+    ctx.beginPath()
+    ctx.fillStyle = "blue"
+    ctx.rect(x + 14, y + 10, 23, 23)
+    ctx.fill()
+
+    ctx.font = "12px Comic Sans MS"
+    ctx.strokeStyle = "white"
+    ctx.strokeText("-_-", x + 17, y + 25, 20);
+}
+
+function formatLevel() { // adds a cell between every "level" cell
+if (level == undefined) {
+    level = levels[1]
+    gameState.level = levels[1]
+}
+    for (let i = 0; i < level.length; i++) {
+        const floor = Math.floor(i / columnsNum)
+        const skip = floor * (columnsNum - 1) * 2
+        const newIdx = i * 2 + skip
+
+        levelFormatted[newIdx] = []
+        
+        level[i].forEach(pass => {
+            let diff = pass - i
+            if (diff === -6) diff = -11
+            else if (diff === 6) diff = 11
+            const newPass = newIdx + diff
+            levelFormatted[newIdx].push(newPass)
+
+            if (levelFormatted[newPass] === undefined) levelFormatted[newPass] = []
+            if (levelFormatted[newPass].indexOf(newIdx) == -1) levelFormatted[newPass].push(newIdx)
+        })
+    }
+}
+
+function drawGrid() {
+    for (let i = 1; i < gridRows; i++) {
+        for (let j = 1; j < gridColumns; j++) {
+            ctx.beginPath()
+            ctx.fillStyle = "darkgray"
+            ctx.rect(j * cellWidth - 2, i * cellHeight - 2, 1, 1)
+            ctx.fill()
+        }
+    }
+}
+
+function drawWalls() {
+    ctx.beginPath()
+    ctx.fillStyle = "red"
+    for (let i = 0; i < level.length; i++) {
+        const x = i % columnsNum
+        const y = Math.floor(i / columnsNum)
+        if (level[i].indexOf(i + 6) === -1) {
+            ctx.rect(
+                x * cellWidth * 2,
+                y * cellHeight * 2 + cellHeight * 2,
+                55, 5)
+        }
+        if (level[i].indexOf(i + 1) === -1) {
+            ctx.rect(
+                x * cellWidth * 2 + cellHeight * 2,
+                y * cellHeight * 2,
+                5, 55)
+            }
+        }
+    ctx.fill()
+}
+
+function createCoinsGrid() {
+    const cellsAvaiable = Object.keys(levelFormatted)
+    cellsAvaiable.forEach(cell => coinsGrid.push(Number(cell)))
+    coinCounter = coinsGrid.length
+    coinCounter -= gameState.imposibleCoins
+}
+
+function drawCoins() {
+    ctx.fillStyle = "yellow"
+
+    coinsGrid.forEach(coin => {
+        const x = coin % 11 + 1
+        const y = Math.floor(coin / 11) + 1
+        
+        ctx.fillStyle = "yellow"
+        ctx.beginPath()
+        ctx.arc(x * 25, y * 25, 4, 0, Math.PI * 2)
+        ctx.fill()
+    })
+}
+
+function drawCellNumbers() {
+    coinsGrid.forEach(coin => {
+        const x = coin % 11 + 1
+        const y = Math.floor(coin / 11) + 1
+        
+        // draw coins' numbers:
+        ctx.font = "10px Comic Sans MS"
+        ctx.fillStyle = "purple"
+        ctx.fillText(`${coin}`, x * 25, y * 25)
+    })
+}
+
+// // Prevent zooming with more than one finger
+// document.addEventListener('touchstart', function(e) {
+//     if (e.touches.length > 1) {
+//         e.preventDefault(); // Prevent zoom
+//     }
+// }, { passive: false });
+
+// // Prevent pinch zooming with gestures
+// document.addEventListener('gesturestart', function(e) {
+//     e.preventDefault(); // Prevent zoom gesture
+// }, { passive: false });
+
+const touchStart = {x: 0, y: 0}
+const touchEnd = {x: 0, y: 0}
+
+window.addEventListener("touchstart", (e) => {
+    // this code:
+    // const { touches, changedTouches } = e.originalEvent ?? e;
+    // const touch = touches[0] ?? changedTouches[0];
+    // touchStart.x = touch.pageX;
+    // touchStart.y = touch.pageY;
+    
+    // means this (?):
+    // let touches = e.originalEvent?.touches
+    // let changedTouches = e.originalEvent?.changedTouches
+    // if (touches == undefined) touches = e.touches
+    // if (changedTouches == undefined) changedTouches = e.changedTouches
+    // let touch = touches[0]
+    // if (touch == undefined) touch = changedTouches[0]
+    // touchStart.x = touch.pageX;
+    // touchStart.y = touch.pageY;
+
+    // this works on my phone
+    let touches = e.touches
+    let changedTouches = e.changedTouches
+    let touch = touches[0]
+    touchStart.x = Math.floor(touch.pageX);
+    touchStart.y = Math.floor(touch.pageY);
+    
+    touchStartTest.innerText = `x: ${touchStart.x}, y: ${touchStart.y}`
+}, {passive: false})
+
+window.addEventListener("touchend", (e) => {
+    // const { touches, changedTouches } = e.originalEvent ?? e;
+    // const touch = touches[0] ?? changedTouches[0];
+    // touchEnd.x = touch.pageX;
+    // touchEnd.y = touch.pageY;
+    
+    // works:
+    let touches = e.touches
+    let changedTouches = e.changedTouches
+    let touch = changedTouches[0]
+    touchEnd.x = Math.floor(touch.pageX);
+    touchEnd.y = Math.floor(touch.pageY);
+
+    touchStartTest.innerText = `x: ${touchStart.x}, y: ${touchStart.y}`
+    touchEndTest.innerText = `x: ${touchEnd.x}, y: ${touchEnd.y}`
+
+    const diffVert = Math.floor(touchStart.y - touchEnd.y)
+    const diffHoriz = Math.floor(touchStart.x - touchEnd.x)
+
+    // if (touchStart.y - touchEnd.y > 50) {
+    //     alert("up")
+
+    // }
+    // if (touchStart.y - touchEnd.y < -50) {
+    //     alert("down")
+
+    // }
+    // if (touchStart.x - touchEnd.x > 50) {
+    //     alert("left")
+
+    // }
+    // if (touchStart.x - touchEnd.x < -50) {
+    //     alert("right")
+
+    // }
+
+    // if (touchStart.y - touchEnd.y < 25 && touchStart.x - touchEnd.x < 25) {
+    //     const bounding = my_canvas.getBoundingClientRect()
+    //     const diffX = player.position.x + bounding.left - touchEnd.x
+    //     const diffY = player.position.y + bounding.top - touchEnd.y
+
+    //     if (Math.abs(diffX) > Math.abs(diffY)) {
+    //         if (diffX > 0) {
+    //             updatePlayer("ArrowLeft")
+    //             directionTest.innerText = "ArrowLeft"
+    //         } else if (diffX < 0) {
+    //             updatePlayer("ArrowRight")
+    //             directionTest.innerText = "ArrowRight"
+    //         }
+    //     } else if (Math.abs(diffX) < Math.abs(diffY)) {
+    //         if (diffY > 0) {
+    //             updatePlayer("ArrowUp")
+    //             directionTest.innerText = "ArrowUp"
+    //         } else if (diffY < 0) {
+    //             updatePlayer("ArrowDown")
+    //             directionTest.innerText = "ArrowDown"
+    //         }
+    //     }
+    //     return
+    // }
+
+
+    if (Math.abs(diffVert) > Math.abs(diffHoriz)) {
+        if (diffVert > 0) {
+            updatePlayer("ArrowUp")
+            directionTest.innerText = "ArrowUp"
+            //alert("vert up" + JSON.stringify(player))
+        } else if (diffVert < 0) {
+            updatePlayer("ArrowDown")
+            directionTest.innerText = "ArrowDown"
+            //alert("vert down" + JSON.stringify(player))
+        }
+    } else if (Math.abs(diffVert) < Math.abs(diffHoriz)) {
+        if (diffHoriz > 0) {
+            updatePlayer("ArrowLeft")
+            directionTest.innerText = "ArrowLeft"
+            //alert("horiz left" + JSON.stringify(player))
+        } else if (diffHoriz < 0) {
+            updatePlayer("ArrowRight")
+            directionTest.innerText = "ArrowRight"
+            //alert("horiz right" + JSON.stringify(player))
+        }
+    } 
+}, {passive: false})
+
+</script>
+
+</body>
+</html>
