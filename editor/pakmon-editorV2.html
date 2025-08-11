@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Highlight connected cells in a grid</title>
+
+  <style>
+#container {
+  width: 300px;
+  height: 250px;
+  border: black solid 3px;
+  display: grid;
+  grid-template-columns: repeat(6, 50px);
+  grid-template-rows: repeat(5, 50px);
+}
+.cell {
+  width: 50px;
+  height: 50px;
+  border: black 3px solid;
+  box-sizing: border-box;
+}
+  </style>
+
+  
+</head>
+<body>
+  <div id="container"></div>
+
+    <script>
+
+for (let i = 0; i < 6 * 5; i++) {
+  const cell = document.createElement("div")
+  cell.id = "cellN" + i
+  cell.className = "cell"
+  cell.number = i
+  container.appendChild(cell)
+
+  cell.addEventListener("click", (e) => acceptSelected(e))
+  cell.addEventListener("mouseover", (e) => selectCells(e))
+}
+
+const passages = [] // index of an array is a cell number
+for (let i = 0; i < 5 * 6; i++) {
+  passages.push(new Set())
+}
+
+const selected = []
+
+function selectCells(e) {
+    const borderStyle = removePass ? "3px solid #555":"3px dotted #555"
+    const backgroundColor = removePass ? "lightBlue" : "lightGray"
+    const backgroundColor1 = removePass ? "lightBlue" : "gray"
+
+    selected.push(e.target)
+    if (selected.length > 2) selected.shift()
+    //console.log(selected[0])
+    selected[0].style.backgroundColor = backgroundColor
+    selected[0].style.border = borderStyle
+    selected[1] && (selected[1].style.backgroundColor = backgroundColor1)
+    selected[1] && (selected[1].style.border = borderStyle)
+    updateStyles(selected[0], selected[1])
+
+    const diff = selected[0].number - selected[1]?.number
+    switch (diff) {
+        case 1:
+            selected[0].style.borderLeft = borderStyle
+            selected[1] && (selected[1].style.borderRight = borderStyle)
+        break;
+        case -1:
+            selected[0].style.borderRight = borderStyle
+            selected[1] && (selected[1].style.borderLeft = borderStyle)
+        break;
+        case 6:
+            selected[0].style.borderTop = borderStyle
+            selected[1] && (selected[1].style.borderBottom = borderStyle)
+        break;
+        case -6:
+            selected[0].style.borderBottom = borderStyle
+            selected[1] && (selected[1].style.borderTop = borderStyle)
+        break;
+    }
+    console.log(diff)
+
+}
+
+function acceptSelected(e) {
+    updatePassages(...selected)
+    updateStyles()
+}
+
+let removePass = false
+document.addEventListener("keydown", (e)=>{
+    console.log(e.keyCode)
+    if (e.keyCode === 32) {
+        removePass = !removePass
+    }
+})
+
+function updatePassages(cellOne, cellTwo) {
+    if (!cellOne || !cellTwo) return
+    const to = cellOne.number
+    const fro = cellTwo.number
+    const diff = to - fro
+    if (fro === undefined) return
+    if (removePass) {
+        passages[`${fro}`].delete(to)
+        passages[`${to}`].delete(fro)
+        return
+    }
+    if (diff !== 1 && diff !== -1 && diff !== 6 && diff !== -6) return
+    if ((diff === 1 || diff === -1) && Math.floor(to / 6) !== Math.floor(fro / 6)) return
+    passages[`${fro}`].add(to)
+    passages[`${to}`].add(fro)
+}
+
+function updateStyles(skip1, skip2) {
+    const cells = document.querySelectorAll(".cell")
+    cells.forEach(cell => {
+        const idx = cell.number
+        const openTo = Array.from(passages[idx])
+
+        const openUp = openTo.indexOf(idx - 6) !== -1
+        const openRight = openTo.indexOf(idx + 1) !== -1
+        const openBottom = openTo.indexOf(idx + 6) !== -1
+        const openLeft = openTo.indexOf(idx - 1) !== -1
+        
+        cell.style.border = "solid 3px black"
+        if (openUp) {cell.style.borderTop = "none" }
+        if (openRight) {cell.style.borderRight = "none" }
+        if (openBottom) {cell.style.borderBottom = "none" }
+        if (openLeft) {cell.style.borderLeft = "none" }
+
+        if (cell == skip1 || cell == skip2) return
+        cell.style.backgroundColor = "white"
+    })
+}
+
+function stringifyPassages() {
+  const arr = []
+  for (let i = 0; i < passages.length; i++) {
+    arr.push(Array.from(passages[i]))
+  }
+  alert(JSON.stringify(arr))
+  return JSON.stringify(arr)
+}
+
+
+  </script>
+</body>
+</html>
