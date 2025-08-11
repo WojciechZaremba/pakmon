@@ -602,7 +602,8 @@ function updateOrangeGhost() {
             return updateOrangeGhost()
         }
         // setTimeout(() => animateGhost(nextMove, cell, ++animFrame), 1)
-        setTimeout(() => animateGhost(nextMove, cell, ++animFrame), 8)
+        // setTimeout(() => animateGhost(nextMove, cell, ++animFrame), 8)
+        setTimeout(() => animateGhost(nextMove, cell, ++animFrame), 40)
     }
 }
 
@@ -677,7 +678,8 @@ function updateGreenGhost() { // same as blue but never turns back
         //TODO: think about this timeout
         // thought: all ghosts could share ONE timeout AND one update function
         // setTimeout(() => animateGreenGhost(nextMove, cell, ++animFrame), 1)
-        setTimeout(() => animateGreenGhost(nextMove, cell, ++animFrame), 8)
+        // setTimeout(() => animateGreenGhost(nextMove, cell, ++animFrame), 8)
+        setTimeout(() => animateGreenGhost(nextMove, cell, ++animFrame), 40)
     }
 }
 
