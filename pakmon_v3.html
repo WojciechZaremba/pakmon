@@ -383,6 +383,7 @@ function loadPreset(level) {
     }
 }
 
+//TODO: rewrite everything using requestAnimationKeyframe()
 function drawFrame() {
     ctx.clearRect(0, 0, 300, 250)
     //drawGrid()
@@ -526,7 +527,8 @@ function updatePlayer(e = "default") {
                 player.direction = 0
             }
         } else {
-            setTimeout(() => moveSmoothly(direction, frame), 1)
+            // setTimeout(() => moveSmoothly(direction, frame), 1)
+            setTimeout(() => moveSmoothly(direction, frame), 32)
         }
     }
 }
@@ -752,7 +754,8 @@ function updateGhost() {
         //TODO: think about this timeout
         // thought: all ghosts could share ONE timeout AND one update function
         // setTimeout(() => animateGhost(nextMove, cell, ++animFrame), 1)
-        setTimeout(() => animateGhost(nextMove, cell, ++animFrame), 8)
+        // setTimeout(() => animateGhost(nextMove, cell, ++animFrame), 8)
+        setTimeout(() => animateGhost(nextMove, cell, ++animFrame), 40)
     }
 }
 
@@ -1040,6 +1043,31 @@ window.addEventListener("touchend", (e) => {
     //     alert("right")
 
     // }
+
+    if (touchStart.y - touchEnd.y < 25 && touchStart.x - touchEnd.x < 25) {
+        const bounding = my_canvas.getBoundingClientRect()
+        const diffX = player.position.x + bounding.left - touchEnd.x
+        const diffY = player.position.y + bounding.top - touchEnd.y
+
+        if (Math.abs(diffX) > Math.abs(diffY)) {
+            if (diffX > 0) {
+                updatePlayer("ArrowLeft")
+                directionTest.innerText = "ArrowLeft"
+            } else if (diffX < 0) {
+                updatePlayer("ArrowRight")
+                directionTest.innerText = "ArrowRight"
+            }
+        } else if (Math.abs(diffX) < Math.abs(diffY)) {
+            if (diffY > 0) {
+                updatePlayer("ArrowUp")
+                directionTest.innerText = "ArrowUp"
+            } else if (diffY < 0) {
+                updatePlayer("ArrowDown")
+                directionTest.innerText = "ArrowDown"
+            }
+        }
+        return
+    }
 
 
     if (Math.abs(diffVert) > Math.abs(diffHoriz)) {
